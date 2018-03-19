@@ -47,7 +47,7 @@ Note that Verdict utilizes the functions provided by databases (e.g., *rand(), c
 
 #### 2.3. Override existing functions (only if necessary)
 
-Unfortunately, your database may not support full SQL syntax and thus, the default behavior defined in Verdict might not work with your database. In such cases, you may need to override necessary functions in the *Dbms* or *DbmsJDBC* classes.
+Your database may not support full SQL syntax and thus, the default behavior defined in Verdict might not work with your database. In such cases, you may need to override necessary functions in the *Dbms* or *DbmsJDBC* classes.
 
 For example, the function, *public void insertEntry(TableUniqueName tableName, List\<Object\> values)*, inserts **values** into the table using the standard SQL INSERT statement: *INSERT INTO TABLE \<tableName\> WITH VALUES (...)*
 
@@ -57,7 +57,7 @@ We recommend to implement abstract functions first, then override existing funct
 
 #### 2.4. Add the driver in Dbms.java
 
-In *getInstance()* function under *Dbms* class, there is an if-else-if statements for instantiating a correct driver for the given database:
+In *getInstance()* function under *Dbms* class, there are if-else-if statements for instantiating a correct driver for the given database:
 
 ```java
     protected static Dbms getInstance(VerdictContext vc, String dbName, String host, String port, String schema,
