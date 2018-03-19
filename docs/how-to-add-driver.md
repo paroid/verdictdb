@@ -21,7 +21,7 @@ Note that it may be necessary to also override some of the functions already imp
 
 #### 2.1. Create a driver class
 
-Create a java class file Dbms*\<db_name\>*.java under the package **edu.umich.verdict.dbms** (e.g., *DbmsMysql.java*). The class should look something like this:
+Create a java class file *Dbms\<db_name\>*.java under the package **edu.umich.verdict.dbms** (e.g., *DbmsMysql.java*). The class should look something like this:
 
 ```java
 package edu.umich.verdict.dbms;
