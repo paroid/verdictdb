@@ -11,7 +11,7 @@ In a nutshell, a user needs to do the following to add a driver into VerdictDB:
 
 1. Fork the VerdictDB's public repository.
 2. Add a VerdictDB driver class for your database and implement appropriate methods.
-3. Make the driver available by modifying the if-else-if statements for selecting a driver.
+3. Make the driver available by modifying the if-else-if statements for the driver instantiation in VerdictDB.
 4. Add a maven dependency for JDBC driver of your database.
 5. Test and submit a pull request for your new driver.
 
@@ -179,7 +179,7 @@ The problem here is that some SQL-on-hadoop engines do not support such INSERT s
 
 We recommend to implement necessary abstract methods first, then override existing methods if there is any problem with default methods during the test.
 
-### 3. Make the driver available
+### 3. Make the driver available in VerdictDB
 
 In the *getInstance()* method under the **Dbms** class, there are if-else-if statements for instantiating a correct driver for the given database:
 
