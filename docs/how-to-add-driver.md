@@ -13,7 +13,7 @@ In a nutshell, a user needs to do the following to add a driver into VerdictDB:
 2. Add a VerdictDB driver class for your database and implement appropriate methods.
 3. Make the driver available by modifying the if-else-if statements for the driver instantiation in VerdictDB.
 4. Add a maven dependency for JDBC driver of your database.
-5. Test and submit a pull request for your new driver.
+5. Test and submit a pull request for your new driver to the VerdictDB's public repository.
 
 Each step will be explained with detailed instructions below.
 
@@ -78,7 +78,7 @@ Note that the current implementation uses the following Hive functions:
 3. rand() : random number generation
 4. unix_timestamp() : current timestamp as a seed for rand()
 
-Since every database differs not only in what functions it supports, but also in how it supports them, you need to use appropriate functions that are available from your target database.
+Since every database differs not only in which functions it supports, but also in how it supports them, you need to use appropriate functions that are available from your target database.
 
 ##### b) protected String randomNumberExpression(SampleParam param)
 
@@ -92,7 +92,7 @@ protected String randomNumberExpression(SampleParam param) {
 }
 ```
 
-The current implementation for Hive is straightforward with the use of *rand()* function. The *param* argument contains information for creating a sample table, but it is not required to use this information in this method.
+The current implementation of the method for Hive is straightforward with its use of *rand()* function. The *param* argument contains information for creating a sample table, but it is not required to use this information in this method.
 
 ##### c) public String modOfHash(String col, int mod)
 This method returns a field expression that will go into a SELECT statement. The expression should get a hash value by applying a hash function to the column named **col**, then perform a modulo operation on the hash value with **mod** as a divisor.
@@ -107,13 +107,13 @@ public String modOfHash(String col, int mod) {
 }
 ```
 
-For Hive, the current implementation first casts the **col** column as string with *cast()* function, then calculates its hash value by applying *crc32()* function, which is a hash function available in Hive, to the string. The modulo operation is applied at the end with **mod**.
+For Hive, the current implementation first casts the **col** column as string with *cast()* function, then calculates its hash value by applying *crc32()* function, which is a hash function available in Hive, to the string. The modulo operation is applied at the end with **mod** as a divisor.
 
 ##### d) public String modOfHash(List\<String\> columns, int mod)
 
 This method returns a field expression that will go into a SELECT statement. The expression should get a hash value by applying a hash function to all columns listed in **columns**, then perform a modulo operation on the hash value with **mod** as a divisor.
 
-The current implementation for Hive is as follows:
+The current implementation of the method for Hive is as follows:
 
 ```java
 @Override
@@ -156,7 +156,7 @@ Note that VerdictDB utilizes the functions provided by databases (e.g., *rand(),
 
 Your database may not support full SQL syntax and thus, the default methods implemented in VerdictDB might not work with your database. In such cases, you may need to override such methods in the **Dbms** or **DbmsJDBC** classes.
 
-For example, the method, *public void insertEntry(TableUniqueName tableName, List\<Object\> values)*, inserts **values** into the table using the standard SQL INSERT statement: *INSERT INTO TABLE \<tableName\> WITH VALUES (...)*
+For example, the method, *public void insertEntry(TableUniqueName tableName, List\<Object\> values)*, inserts *values* into the table using the standard SQL INSERT statement: *INSERT INTO TABLE \<tableName\> WITH VALUES (...)*
 
 However, the current implementation for Hive overrides this method as follows:
 
@@ -175,7 +175,7 @@ public void insertEntry(TableUniqueName tableName, List<Object> values)
 }
 ```
 
-The problem here is that some SQL-on-hadoop engines do not support such INSERT statement (e.g., older versions of Hive). Therefore, we overrode the method for VerdictDB's Hive driver.
+The problem here is that some SQL-on-hadoop engines do not support such standard INSERT statement (e.g., older versions of Hive). Therefore, we overrode the method as shown above for the VerdictDB's Hive driver.
 
 We recommend to implement necessary abstract methods first, then override existing methods if there is any problem with default methods during the test.
 
