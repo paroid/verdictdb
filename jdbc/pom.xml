@@ -136,16 +136,16 @@
                     <artifactId>ql</artifactId>
                     <version>2.5.41</version>
                 </dependency>
-                <dependency>
-                    <groupId>com.cloudera.impala.jdbc</groupId>
-                    <artifactId>slf4j-api-1.5.11</artifactId>
-                    <version>2.5.41</version>
-                </dependency>
-                <dependency>
-                    <groupId>com.cloudera.impala.jdbc</groupId>
-                    <artifactId>slf4j-log4j12-1.5.11</artifactId>
-                    <version>2.5.41</version>
-                </dependency>
+                <!--<dependency>-->
+                    <!--<groupId>com.cloudera.impala.jdbc</groupId>-->
+                    <!--<artifactId>slf4j-api-1.5.11</artifactId>-->
+                    <!--<version>2.5.41</version>-->
+                <!--</dependency>-->
+                <!--<dependency>-->
+                    <!--<groupId>com.cloudera.impala.jdbc</groupId>-->
+                    <!--<artifactId>slf4j-log4j12-1.5.11</artifactId>-->
+                    <!--<version>2.5.41</version>-->
+                <!--</dependency>-->
                 <dependency>
                     <groupId>com.cloudera.impala.jdbc</groupId>
                     <artifactId>TCLIServiceClient</artifactId>
@@ -219,16 +219,16 @@
                     <artifactId>ql</artifactId>
                     <version>2.5.41</version>
                 </dependency>
-                <dependency>
-                    <groupId>com.cloudera.impala.jdbc</groupId>
-                    <artifactId>slf4j-api-1.5.11</artifactId>
-                    <version>2.5.41</version>
-                </dependency>
-                <dependency>
-                    <groupId>com.cloudera.impala.jdbc</groupId>
-                    <artifactId>slf4j-log4j12-1.5.11</artifactId>
-                    <version>2.5.41</version>
-                </dependency>
+                <!--<dependency>-->
+                    <!--<groupId>com.cloudera.impala.jdbc</groupId>-->
+                    <!--<artifactId>slf4j-api-1.5.11</artifactId>-->
+                    <!--<version>2.5.41</version>-->
+                <!--</dependency>-->
+                <!--<dependency>-->
+                    <!--<groupId>com.cloudera.impala.jdbc</groupId>-->
+                    <!--<artifactId>slf4j-log4j12-1.5.11</artifactId>-->
+                    <!--<version>2.5.41</version>-->
+                <!--</dependency>-->
                 <dependency>
                     <groupId>com.cloudera.impala.jdbc</groupId>
                     <artifactId>TCLIServiceClient</artifactId>
