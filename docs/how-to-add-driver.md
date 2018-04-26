@@ -12,8 +12,9 @@ In a nutshell, a user needs to do the following to add a driver into VerdictDB:
 1. Fork the VerdictDB's public repository.
 2. Add a VerdictDB driver class for your database and implement appropriate methods.
 3. Make the driver available by modifying the if-else-if statements for the driver instantiation in VerdictDB.
-4. Add a maven dependency for JDBC driver of your database.
-5. Test and submit a pull request for your new driver to the VerdictDB's public repository.
+4. Add properties in VerdictDB's default property file.
+5. Add a maven dependency for JDBC driver of your database.
+6. Test and submit a pull request for your new driver to the VerdictDB's public repository.
 
 Each step will be explained with detailed instructions below.
 
@@ -225,7 +226,21 @@ You simply need to add a similar else-if statement here for your driver.
 
 Note that *dbName* directly goes into its JDBC connection string (e.g., *jdbc:\<dbName\>://\<host\>:\<port\>/\<schema\>*).
 
-### 4. Add a maven dependency for the JDBC driver
+### 4. Add properties in the VerdictDB's default property file
+
+You need to add two properties in the VerdictDB's default property file for 1) default port and 2) JDBC class name.
+
+The default property file is located at *\<verdict_root\>/core/src/main/resources/verdict_default.properties*. You need to edit this file and add two properties like following:
+
+```
+### jdbc > connection > hive2
+verdict.jdbc.hive2.default_port=10000
+verdict.jdbc.hive2.class_name=org.apache.hive.jdbc.HiveDriver
+```
+
+The property name has the format of *verdict.jdbc.\<dbName\>.\<fieldName\>*. You need to add same properties for your driver.
+
+### 5. Add a maven dependency for the JDBC driver
 
 You need to add a maven dependency for the JDBC driver into **pom.xml** that can be found in the directory: *\<verdict_root\>/core*.
 
@@ -239,7 +254,7 @@ For example, we have the following maven dependency for Hive JDBC driver.
 </dependency>
 ```
 
-### 5. Test and submit a pull request for your driver
+### 6. Test and submit a pull request for your driver
 Please test your driver to make sure that VerdictDB works as intended. Feel free to contact us at <verdict-user@umich.edu> or open an issue at [Verdict's public repository](https://github.com/mozafari/verdict) if you encounter any problem that cannot be resolved.
 
 Once you are confident with the driver, please submit a pull request for your driver at [our public repository](https://github.com/mozafari/verdict). The instructions on how to create a pull request can be found [here](https://help.github.com/articles/creating-a-pull-request/). Our developers will review the request and merge your driver into Verdict. We would like to thank you for your help and contribution to VerdictDB in advance!
