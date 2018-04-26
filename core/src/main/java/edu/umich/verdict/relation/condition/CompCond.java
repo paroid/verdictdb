@@ -164,11 +164,14 @@ public class CompCond extends Cond {
                     }
                 }
                 if (colRight != null) {
-                    ExactRelation r1 = findSourceContaining(tableSources, (ColNameExpr) left);
-                    ExactRelation r2 = findSourceContaining(tableSources, (ColNameExpr) colRight);
-
-                    String leftOriginalName = (r1 != null) ? getOriginalTableName(tableSources, r1.getAlias()) : null;
-                    String rightOriginalName = (r2 != null) ? getOriginalTableName(tableSources, r2.getAlias()) : null;
+                    ColNameExpr leftCol = (ColNameExpr) left;
+                    ColNameExpr rightCol = (ColNameExpr) colRight;
+                    ExactRelation r1 = findSourceContaining(tableSources, leftCol);
+                    ExactRelation r2 = findSourceContaining(tableSources, rightCol);
+                    String leftOriginalName = (r1 != null) ?
+                            getOriginalTableName(tableSources, leftCol.getTab()) : null;
+                    String rightOriginalName = (r2 != null) ?
+                            getOriginalTableName(tableSources, rightCol.getTab()) : null;
                     if (r2 != null && leftOriginalName != null && rightOriginalName != null &&
                             !(leftOriginalName.equals(rightOriginalName) &&
                                     r1.getAlias().equals(r2.getAlias()))) {
@@ -188,13 +191,14 @@ public class CompCond extends Cond {
                     }
                 }
                 if (colLeft != null) {
-                    ExactRelation r1 = findSourceContaining(tableSources, (ColNameExpr) colLeft);
-                    ExactRelation r2 = findSourceContaining(tableSources, (ColNameExpr) right);
-
+                    ColNameExpr leftCol = (ColNameExpr) colLeft;
+                    ColNameExpr rightCol = (ColNameExpr) right;
+                    ExactRelation r1 = findSourceContaining(tableSources, leftCol);
+                    ExactRelation r2 = findSourceContaining(tableSources, rightCol);
                     String leftOriginalName = (r1 != null) ?
-                            getOriginalTableName(tableSources, r1.getAlias()) : null;
+                            getOriginalTableName(tableSources, leftCol.getTab()) : null;
                     String rightOriginalName = (r2 != null) ?
-                            getOriginalTableName(tableSources, r2.getAlias()) : null;
+                            getOriginalTableName(tableSources, rightCol.getTab()) : null;
 
                     if (r2 != null && leftOriginalName != null && rightOriginalName != null &&
                             !(leftOriginalName.equals(rightOriginalName) &&
@@ -226,13 +230,14 @@ public class CompCond extends Cond {
                     }
                 }
                 if (colLeft != null && colRight != null) {
-                    ExactRelation r1 = findSourceContaining(tableSources, (ColNameExpr) colLeft);
-                    ExactRelation r2 = findSourceContaining(tableSources, (ColNameExpr) colRight);
-
+                    ColNameExpr leftCol = (ColNameExpr) colLeft;
+                    ColNameExpr rightCol = (ColNameExpr) colRight;
+                    ExactRelation r1 = findSourceContaining(tableSources, leftCol);
+                    ExactRelation r2 = findSourceContaining(tableSources, rightCol);
                     String leftOriginalName = (r1 != null) ?
-                            getOriginalTableName(tableSources, r1.getAlias()) : null;
+                            getOriginalTableName(tableSources, leftCol.getTab()) : null;
                     String rightOriginalName = (r2 != null) ?
-                            getOriginalTableName(tableSources, r2.getAlias()) : null;
+                            getOriginalTableName(tableSources, rightCol.getTab()) : null;
                     if (r2 != null && leftOriginalName != null && rightOriginalName != null &&
                             !(leftOriginalName.equals(rightOriginalName) &&
                                     r1.getAlias().equals(r2.getAlias()))) {
