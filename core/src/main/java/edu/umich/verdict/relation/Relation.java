@@ -316,6 +316,11 @@ public abstract class Relation {
 
     protected static boolean areMatchingUniverseSamples(ApproxRelation r1, ApproxRelation r2,
             List<Pair<Expr, Expr>> joincond) {
+
+        if (!r1.sampleType().equals("universe") || !r2.sampleType().equals("universe")) {
+            return false;
+        }
+
         List<Expr> leftJoinCols = new ArrayList<Expr>();
         List<Expr> rightJoinCols = new ArrayList<Expr>();
         for (Pair<Expr, Expr> pair : joincond) {
@@ -323,15 +328,13 @@ public abstract class Relation {
             rightJoinCols.add(pair.getRight());
         }
 
-        if (r1.sampleType().equals("universe") && r2.sampleType().equals("universe")) {
-            List<String> cols1 = r1.getColumnsOnWhichSamplesAreCreated();
-            List<String> cols2 = r2.getColumnsOnWhichSamplesAreCreated();
-            if ((joinColumnsEqualToSampleColumns(leftJoinCols, cols1)
-                    && joinColumnsEqualToSampleColumns(rightJoinCols, cols2)) ||
+        List<String> cols1 = r1.getColumnsOnWhichSamplesAreCreated();
+        List<String> cols2 = r2.getColumnsOnWhichSamplesAreCreated();
+        if ((joinColumnsEqualToSampleColumns(leftJoinCols, cols1)
+                && joinColumnsEqualToSampleColumns(rightJoinCols, cols2)) ||
                 (joinColumnsEqualToSampleColumns(leftJoinCols, cols2)
                         && joinColumnsEqualToSampleColumns(rightJoinCols, cols1))) {
-                return true;
-            }
+            return true;
         }
         return false;
     }

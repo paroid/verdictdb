@@ -158,6 +158,15 @@ public class ApproxAggregatedRelation extends ApproxRelation {
                 ColNameExpr est = new ColNameExpr(vc, elem.getAlias(), r.getAlias());
                 ColNameExpr psize = new ColNameExpr(vc, partitionSizeAlias, r.getAlias());
 
+                SelectElem newElem = null;
+                Expr newExpr = null;
+                if (elem.getAlias() == null) {
+                    newExpr = elem.getExpr().withTableSubstituted(r.getAlias());
+                } else {
+                    newExpr = new ColNameExpr(vc, elem.getAlias(), r.getAlias());
+                }
+                newGroupby.add(newExpr);
+
                 // average estimate
                 Expr averaged = null;
                 Expr originalExpr = originalElem.get().getExpr();

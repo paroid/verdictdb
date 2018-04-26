@@ -50,7 +50,13 @@ public class ApproxJoinedRelation extends ApproxRelation {
     private ApproxRelation source2;
 
     private List<Pair<Expr, Expr>> joinCols;
-    
+
+    private List<String> cacheOfColumnsOnSampleCreatedSource1;
+    private List<String> cacheOfColumnsOnSampleCreatedSource2;
+    private List<String> cacheOfColumnsOnSampleCreatedUnion;
+
+    private String sampleType;
+
     private JoinType joinType = JoinType.INNER;
 
     public JoinType getJoinType() {
@@ -218,29 +224,33 @@ public class ApproxJoinedRelation extends ApproxRelation {
 
     @Override
     public String sampleType() {
+        if (sampleType != null && !sampleType.isEmpty()) {
+            return sampleType;
+        }
         Set<String> sampleTypeSet = ImmutableSet.of(source1.sampleType(), source2.sampleType());
 
         if (Relation.areMatchingUniverseSamples(source1, source2, joinCols)) {
-            return "universe";
+            sampleType = "universe";
         } else if (sampleTypeSet.equals(ImmutableSet.of("uniform", "uniform"))) {
-            return "uniform";
+            sampleType = "uniform";
         } else if (sampleTypeSet.equals(ImmutableSet.of("uniform", "stratified"))) {
-            return "stratified";
+            sampleType = "stratified";
         } else if (sampleTypeSet.equals(ImmutableSet.of("uniform", "universe"))) {
-            return "uniform";
+            sampleType = "uniform";
         } else if (sampleTypeSet.equals(ImmutableSet.of("uniform", "nosample"))) {
-            return "uniform";
+            sampleType = "uniform";
         } else if (sampleTypeSet.equals(ImmutableSet.of("stratified", "stratified"))) {
-            return "arbitrary";
+            sampleType = "arbitrary";
         } else if (sampleTypeSet.equals(ImmutableSet.of("stratified", "nosample"))) {
-            return "stratified";
+            sampleType = "stratified";
         } else if (sampleTypeSet.equals(ImmutableSet.of("universe", "nosample"))) {
-            return "universe";
+            sampleType = "universe";
         } else if (sampleTypeSet.equals(ImmutableSet.of("nosample", "nosample"))) {
-            return "nosample";
+            sampleType = "nosample";
         } else {
-            return source1.sampleType() + "-" + source2.sampleType(); // unexpected
+            sampleType = source1.sampleType() + "-" + source2.sampleType(); // unexpected
         }
+        return sampleType;
     }
 
     @Override
@@ -251,14 +261,25 @@ public class ApproxJoinedRelation extends ApproxRelation {
     @Override
     public List<String> getColumnsOnWhichSamplesAreCreated() {
         if (sampleType().equals("stratified")) {
+            if (cacheOfColumnsOnSampleCreatedUnion != null)
+                return cacheOfColumnsOnSampleCreatedUnion;
             List<String> union = new ArrayList<String>(source1.getColumnsOnWhichSamplesAreCreated());
             union.addAll(source2.getColumnsOnWhichSamplesAreCreated());
+            cacheOfColumnsOnSampleCreatedUnion = new ArrayList<>(union);
             return union;
         } else if (sampleType().equals("universe")) {
             if (source1.sampleType().equals("universe")) {
-                return source1.getColumnsOnWhichSamplesAreCreated();
+                if (cacheOfColumnsOnSampleCreatedSource1 != null)
+                    return cacheOfColumnsOnSampleCreatedSource1;
+                cacheOfColumnsOnSampleCreatedSource1 =
+                        new ArrayList<>(source1.getColumnsOnWhichSamplesAreCreated());
+                return cacheOfColumnsOnSampleCreatedSource1;
             } else {
-                return source2.getColumnsOnWhichSamplesAreCreated();
+                if (cacheOfColumnsOnSampleCreatedSource2 != null)
+                    return cacheOfColumnsOnSampleCreatedSource2;
+                cacheOfColumnsOnSampleCreatedSource2 =
+                        new ArrayList<>(source2.getColumnsOnWhichSamplesAreCreated());
+                return cacheOfColumnsOnSampleCreatedSource2;
             }
         } else {
             return Arrays.asList();
