@@ -17,15 +17,11 @@
 package edu.umich.verdict.dbms;
 
 import java.sql.ResultSet;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import com.google.common.base.Optional;
 import edu.umich.verdict.VerdictConf;
+import edu.umich.verdict.relation.expr.ColNameExpr;
 import org.apache.commons.lang3.tuple.Pair;
 //import org.apache.spark.sql.DataFrame;
 import org.apache.spark.sql.Dataset;
@@ -142,6 +138,50 @@ public class DbmsSpark2 extends Dbms {
         Dataset<Row> df = executeSpark2Query(sql);
         long size = df.collectAsList().get(0).getLong(0);
         return size;
+    }
+
+    // TODO: this method requires testing.
+    @Override
+    public long[] getGroupCount(TableUniqueName tableName, List<SortedSet<ColNameExpr>> columnSetList)
+            throws VerdictException {
+        if (columnSetList.isEmpty()) {
+            return null;
+        }
+        int setCount = 1;
+        long[] groupCounts = new long[columnSetList.size()];
+        List<String> countStringList = new ArrayList<>();
+        for (SortedSet<ColNameExpr> columnSet : columnSetList) {
+            List<String> colStringList = new ArrayList<>();
+            for (ColNameExpr col : columnSet) {
+                String colString = String.format("COALESCE(CAST(%s as STRING), '%s')",
+                        col.getCol(), NULL_STRING);
+                colStringList.add(colString);
+            }
+            String concatString = "";
+            for (int i = 0; i < colStringList.size(); ++i) {
+                concatString += colStringList.get(i);
+                if (i < colStringList.size() - 1) {
+                    concatString += ",";
+                }
+            }
+            String countString = String.format("COUNT(DISTINCT(CONCAT_WS(',', %s))) as cnt%d",
+                    concatString, setCount++);
+            countStringList.add(countString);
+        }
+        String sql = "SELECT ";
+        for (int i = 0; i < countStringList.size(); ++i) {
+            sql += countStringList.get(i);
+            if (i < countStringList.size() - 1) {
+                sql += ", ";
+            }
+        }
+        sql += String.format(" FROM %s", tableName);
+
+        Dataset<Row> df = executeSpark2Query(sql);
+        for (int i = 0; i < groupCounts.length; ++i) {
+            groupCounts[i] = df.collectAsList().get(0).getLong(i);
+        }
+        return groupCounts;
     }
 
     @Override

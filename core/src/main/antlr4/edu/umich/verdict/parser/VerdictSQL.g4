@@ -135,7 +135,7 @@ config_value
     ;
 
 SIZE: S I Z E;
-//STORE: S T O R E;
+STORE: S T O R E;
 POISSON: P O I S S O N;
 COLUMNS: C O L U M N S;
 STRATIFIED: S T R A T I F I E D;
@@ -325,9 +325,14 @@ expression
     | '~' expression                                           #unary_operator_expression
     | expression op=('*' | '/' | '%') expression               #binary_operator_expression
     | op=('+' | '-') expression                                #unary_operator_expression
-    | expression op=('+' | '-' | '&' | '^' | '|') expression   #binary_operator_expression
+    | expression op=('+' | '-' | '&' | '^' | '|' | '||') expression   #binary_operator_expression
     | expression comparison_operator expression                #binary_operator_expression
+    | interval                                                 #interval_expression
     ;
+
+interval
+	: INTERVAL constant_expression (DAY | DAYS | MONTH | MONTHS | YEAR | YEARS)
+	;
 
 constant_expression
     : NULL
@@ -403,10 +408,11 @@ query_specification
       select_list
       // https://msdn.microsoft.com/en-us/library/ms188029.aspx
       (INTO into_table=table_name)?
-      (FROM table_source (',' table_source)*)?
+      (FROM (table_source (',' table_source)*))?
       (WHERE where=search_condition)?
       // https://msdn.microsoft.com/en-us/library/ms177673.aspx
-      (GROUP BY group_by_item (',' group_by_item)*)?
+      ((GROUP BY group_by_item (',' group_by_item)* (WITH ROLLUP)?) |
+      (GROUP BY ROLLUP '(' group_by_item (',' group_by_item)* ')'))?
       (HAVING having=search_condition)?
     ;
 
@@ -501,7 +507,7 @@ change_table
 join_part
     // https://msdn.microsoft.com/en-us/library/ms173815(v=sql.120).aspx
     : (INNER? |
-       join_type=(LEFT | RIGHT | FULL) OUTER?) (join_hint=(LOOP | HASH | MERGE | REMOTE))?
+       join_type=(LEFT | RIGHT | FULL) OUTER?) (join_hint=(LOOP | HASH | MERGE | REMOTE | SEMI))?
        JOIN table_source ON search_condition
     | CROSS JOIN table_source
     | CROSS APPLY table_source
@@ -614,17 +620,17 @@ value_manipulation_function
     ;
 
 nary_manipulation_function
-	: function_name=(CONCAT | CONCAT_WS)
+	: function_name=(CONCAT | CONCAT_WS | COALESCE)
 		'(' expression (',' expression)* ')'
     ;
 
 ternary_manipulation_function
-    : function_name=(CONV | SUBSTR)
+    : function_name=(CONV | SUBSTR | HASH | RPAD)
       '(' expression ',' expression ',' expression ')'
     ;
 
 binary_manipulation_function
-    : function_name=(MOD | PMOD | STRTOL | POW | PERCENTILE | SPLIT | INSTR | ENCODE | DECODE | SHIFTLEFT | SHIFTRIGHT | SHIFTRIGHTUNSIGNED | NVL | FIND_IN_SET | FORMAT_NUMBER | GET_JSON_OBJECT | IN_FILE | LOCATE | REPEAT | AES_ENCRYPT | AES_DECRYPT)
+    : function_name=(ROUND | MOD | PMOD | STRTOL | POW | PERCENTILE | SPLIT | INSTR | ENCODE | DECODE | SHIFTLEFT | SHIFTRIGHT | SHIFTRIGHTUNSIGNED | NVL | FIND_IN_SET | FORMAT_NUMBER | GET_JSON_OBJECT | IN_FILE | LOCATE | REPEAT | AES_ENCRYPT | AES_DECRYPT)
       '(' expression ',' expression ')'
     ;
     
@@ -638,7 +644,7 @@ extract_unit
     ;
 
 unary_manipulation_function
-    : function_name=(ROUND | FLOOR | CEIL | EXP | LN | LOG10 | LOG2 | SIN | COS | TAN | SIGN | RAND | FNV_HASH
+    : function_name=(ROUND | FLOOR | CEIL | EXP | LN | LOG10 | LOG2 | SIN | COS | TAN | SIGN | RAND | FNV_HASH | RAWTOHEX
      | ABS | STDDEV | SQRT | MD5 | CRC32 | YEAR | QUARTER | MONTH | DAY | HOUR | MINUTE | SECOND | WEEKOFYEAR | LOWER | UPPER | ASCII | CHARACTER_LENGTH | FACTORIAL | CBRT | LENGTH | TRIM | ASIN | ACOS | ATAN | DEGREES | RADIANS | POSITIVE | NEGATIVE | BROUND | BIN | HEX | UNHEX | FROM_UNIXTIME | TO_DATE | CHR | LTRIM | REVERSE | SPACE_FUNCTION | SHA1 | SHA2 )
       '(' expression ')'
     | function_name=CAST '(' cast_as_expression ')'    
@@ -964,6 +970,16 @@ simple_id
     | WORK
     | XML
     | XMLNAMESPACES
+    | DAY
+    | MONTH
+    | YEAR
+    | DAYS
+    | MONTHS
+    | YEARS
+    | STORE
+    | INTERVAL
+    | TABLES
+    | COLUMNS
     ;
 
 // https://msdn.microsoft.com/en-us/library/ms188074.aspx
@@ -1062,6 +1078,7 @@ FUNCTION:                        F U N C T I O N;
 GOTO:                            G O T O;
 GRANT:                           G R A N T;
 GROUP:                           G R O U P;
+HASH:                            H A S H;
 HAVING:                          H A V I N G;
 IDENTITY:                        I D E N T I T Y;
 IDENTITYCOL:                     I D E N T I T Y C O L;
@@ -1112,6 +1129,7 @@ PRINT:                           P R I N T;
 PROC:                            P R O C;
 PROCEDURE:                       P R O C E D U R E;
 RAISERROR:                       R A I S E R R O R;
+RAWTOHEX:                        R A W T O H E X;
 READ:                            R E A D;
 READTEXT:                        R E A D T E X T;
 RECONFIGURE:                     R E C O N F I G U R E;
@@ -1126,6 +1144,7 @@ RIGHT:                           R I G H T;
 ROLLBACK:                        R O L L B A C K;
 ROWCOUNT:                        R O W C O U N T;
 ROWGUIDCOL:                      R O W G U I D C O L;
+RPAD:                            R P A D;
 RULE:                            R U L E;
 SAVE:                            S A V E;
 SCHEMA:                          S C H E M A;
@@ -1135,6 +1154,7 @@ SELECT:                          S E L E C T;
 SEMANTICKEYPHRASETABLE:          S E M A N T I C K E Y P H R A S E T A B L E;
 SEMANTICSIMILARITYDETAILSTABLE:  S E M A N T I C S I M I L A R I T Y D E T A I L S T A B L E;
 SEMANTICSIMILARITYTABLE:         S E M A N T I C S I M I L A R I T Y T A B L E;
+SEMI:                            S E M I;
 SESSION_USER:                    S E S S I O N '_' U S E R;
 SET:                             S E T;
 SETUSER:                         S E T U S E R;
@@ -1213,6 +1233,7 @@ DATEDIFF:                        D A T E D I F F;
 DATENAME:                        D A T E N A M E;
 DATEPART:                        D A T E P A R T;
 DAY:                             D A Y;
+DAYS:                            D A Y S;
 DECODE:                          D E C O D E;
 DEGREES:                         D E G R E E S;
 DELAY:                           D E L A Y;
@@ -1246,12 +1267,12 @@ GLOBAL:                          G L O B A L;
 GO:                              G O;
 GROUPING:                        G R O U P I N G;
 GROUPING_ID:                     G R O U P I N G '_' I D;
-HASH:                            H A S H;
 HEX:                             H E X;
 HOUR:                            H O U R;
 INSENSITIVE:                     I N S E N S I T I V E;
 INSERTED:                        I N S E R T E D;
 INSTR:                           I N S T R;
+INTERVAL:                        I N T E R V A L;
 IN_FILE:                         I N '_' F I L E;
 ISOLATION:                       I S O L A T I O N;
 KEEPFIXED:                       K E E P F I X E D;
@@ -1280,6 +1301,7 @@ MINUTE:                          M I N U T E;
 MOD:                             M O D;
 MODIFY:                          M O D I F Y;
 MONTH:                           M O N T H;
+MONTHS:                          M O N T H S;
 NEGATIVE:                        N E G A T I V E;
 NEXT:                            N E X T;
 NAME:                            N A M E;
@@ -1323,6 +1345,7 @@ REMOTE:                          R E M O T E;
 REPEAT:                          R E P E A T;
 REPEATABLE:                      R E P E A T A B L E;
 REVERSE:                         R E V E R S E;
+ROLLUP:                          R O L L U P;
 ROOT:                            R O O T;
 ROUND:                           R O U N D;
 ROW:                             R O W;
@@ -1382,6 +1405,7 @@ WORK:                            W O R K;
 XML:                             X M L;
 XMLNAMESPACES:                   X M L N A M E S P A C E S;
 YEAR:                            Y E A R;
+YEARS:                           Y E A R S;
 
 DOLLAR_ACTION:                   '$' A C T I O N;
 
@@ -1424,7 +1448,7 @@ DOLLAR:              '$';
 LR_BRACKET:          '(';
 RR_BRACKET:          ')';
 COMMA:               ',';
-SEMI:                ';';
+SEMICOLON:           ';';
 COLON:               ':';
 STAR:                '*';
 DIVIDE:              '/';

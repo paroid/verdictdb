@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import edu.umich.verdict.relation.expr.SelectElem;
 import org.apache.commons.lang3.tuple.Pair;
 
 import edu.umich.verdict.VerdictContext;
@@ -78,7 +79,7 @@ public class LateralViewRelation extends ExactRelation {
     }
 
     @Override
-    protected ApproxRelation approxWith(Map<TableUniqueName, SampleParam> replace) {
+    public ApproxRelation approxWith(Map<TableUniqueName, SampleParam> replace) {
         ApproxRelation a = new ApproxLateralViewRelation(vc, lateralFunc, tableAlias, columnAlias);
         a.setAlias(getAlias());
         return a;
@@ -94,6 +95,11 @@ public class LateralViewRelation extends ExactRelation {
     @Override
     public ColNameExpr partitionColumn() {
         return null;
+    }
+
+    @Override
+    public List<SelectElem> getSelectElemList() {
+        return new ArrayList<>();
     }
 
     @Override

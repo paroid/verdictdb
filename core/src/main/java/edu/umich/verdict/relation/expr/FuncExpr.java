@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 import edu.umich.verdict.VerdictContext;
@@ -38,9 +39,13 @@ public class FuncExpr extends Expr {
         POW, E, PI, FACTORIAL, CBRT, PERCENTILE, SPLIT, LENGTH, INSTR, TRIM, ASIN, ACOS, ATAN, DEGREES,
         RADIANS, POSITIVE, NEGATIVE, ENCODE, DECODE, BROUND, BIN, HEX, UNHEX, SHIFTLEFT, SHIFTRIGHT,
         SHIFTRIGHTUNSIGNED, FROM_UNIXTIME, TO_DATE, NVL, CHR, FIND_IN_SET, FORMAT_NUMBER, GET_JSON_OBJECT,
-      IN_FILE, LOCATE, LTRIM, REPEAT, REVERSE, SPACE, AES_ENCRYPT, AES_DECRYPT, SHA1, SHA2, STDDEV_SAMP,
-        CONCAT, CONCAT_WS
+        IN_FILE, LOCATE, LTRIM, REPEAT, REVERSE, SPACE, AES_ENCRYPT, AES_DECRYPT, SHA1, SHA2, STDDEV_SAMP,
+        CONCAT, CONCAT_WS, RANK, DENSE_RANK, NTILE, ROW_NUMBER, COALESCE, HASH, RPAD, RAWTOHEX
     }
+
+    public static final ImmutableList<FuncName> AGG_FUNC_LIST =
+            ImmutableList.of(FuncName.COUNT, FuncName.SUM, FuncName.AVG, FuncName.COUNT_DISTINCT,
+                    FuncName.IMPALA_APPROX_COUNT_DISTINCT);
 
     protected List<Expr> expressions;
 
@@ -59,6 +64,7 @@ public class FuncExpr extends Expr {
             .put("ATAN", FuncName.ATAN)
             .put("BIN", FuncName.BIN)
             .put("BROUND", FuncName.BROUND)
+            .put("COALESCE", FuncName.COALESCE)
             .put("CAST", FuncName.CAST)
             .put("CBRT", FuncName.CBRT)
             .put("CEIL", FuncName.CEIL)
@@ -84,6 +90,7 @@ public class FuncExpr extends Expr {
             .put("FORMAT_NUMBER", FuncName.FORMAT_NUMBER)
             .put("FROM_UNIXTIME", FuncName.FROM_UNIXTIME)
             .put("GET_JSON_OBJECT", FuncName.GET_JSON_OBJECT)
+            .put("HASH", FuncName.HASH)
             .put("HEX", FuncName.HEX)
             .put("HOUR", FuncName.HOUR)
             .put("INSTR", FuncName.INSTR)
@@ -112,9 +119,11 @@ public class FuncExpr extends Expr {
             .put("RADIANS", FuncName.RADIANS)
             .put("RAND", FuncName.RAND)
             .put("RANDOM", FuncName.RANDOM)
+            .put("RAWTOHEX", FuncName.RAWTOHEX)
             .put("REPEAT", FuncName.REPEAT)
             .put("REVERSE", FuncName.REVERSE)
             .put("ROUND", FuncName.ROUND)
+            .put("RPAD", FuncName.RPAD)
             .put("SECOND", FuncName.SECOND)
             .put("SHA1", FuncName.SHA1)
             .put("SHA2", FuncName.SHA2)
@@ -138,6 +147,10 @@ public class FuncExpr extends Expr {
             .put("UPPER", FuncName.UPPER)
             .put("WEEKOFYEAR", FuncName.WEEKOFYEAR)
             .put("YEAR", FuncName.YEAR)
+            .put("RANK", FuncName.RANK)
+            .put("DENSE_RANK", FuncName.DENSE_RANK)
+            .put("NTILE", FuncName.NTILE)
+            .put("ROW_NUMBER", FuncName.ROW_NUMBER)
             .build();
 
     protected static Map<FuncName, String> functionPattern = ImmutableMap.<FuncName, String>builder()
@@ -151,6 +164,7 @@ public class FuncExpr extends Expr {
             .put(FuncName.AVG, "avg(%s)")
             .put(FuncName.BIN, "bin(%s)")
             .put(FuncName.BROUND, "bround(%s)")
+            .put(FuncName.COALESCE, "coalesce(%s)")
             .put(FuncName.CAST, "cast(%s as %s)")
             .put(FuncName.CBRT, "cbrt(%s)")
             .put(FuncName.CEIL, "ceil(%s)")
@@ -178,6 +192,7 @@ public class FuncExpr extends Expr {
             .put(FuncName.FORMAT_NUMBER, "format_number(%s, %s)")
             .put(FuncName.FROM_UNIXTIME, "from_unixtime(%s)")
             .put(FuncName.GET_JSON_OBJECT, "get_json_object(%s, %s)")
+            .put(FuncName.HASH, "hash(%s, %s, %s)")
             .put(FuncName.HEX, "hex(%s)")
             .put(FuncName.HOUR, "hour(%s)")
             .put(FuncName.IMPALA_APPROX_COUNT_DISTINCT, "ndv(%s)")
@@ -207,9 +222,11 @@ public class FuncExpr extends Expr {
             .put(FuncName.RADIANS, "radians(%s)")
             .put(FuncName.RAND, "rand(%s)")
             .put(FuncName.RANDOM, "random(%s)")
+            .put(FuncName.RAWTOHEX, "rawtohex(%s)")
             .put(FuncName.REPEAT, "repeat(%s, %s)")
             .put(FuncName.REVERSE, "reverse(%s)")
             .put(FuncName.ROUND, "round(%s)")
+            .put(FuncName.RPAD, "rpad(%s, %s, %s)")
             .put(FuncName.SECOND, "second(%s)")
             .put(FuncName.SHA1, "sha1(%s)")
             .put(FuncName.SHA2, "sha2(%s)")
@@ -235,6 +252,10 @@ public class FuncExpr extends Expr {
             .put(FuncName.UPPER, "upper(%s)")
             .put(FuncName.WEEKOFYEAR, "weekofyear(%s)")
             .put(FuncName.YEAR, "year(%s)")
+            .put(FuncName.RANK, "rank(%s)")
+            .put(FuncName.DENSE_RANK, "dense_rank(%s)")
+            .put(FuncName.NTILE, "ntile(%s)")
+            .put(FuncName.ROW_NUMBER, "row_number(%s)")
             .build();
 
     public FuncExpr(FuncName fname, List<Expr> exprs, OverClause overClause) {
@@ -299,6 +320,30 @@ public class FuncExpr extends Expr {
 
     public static FuncExpr from(final VerdictContext vc, VerdictSQLParser.Function_callContext ctx) {
         VerdictSQLBaseVisitor<FuncExpr> v = new VerdictSQLBaseVisitor<FuncExpr>() {
+
+            @Override
+            public FuncExpr visitRanking_windowed_function(VerdictSQLParser.Ranking_windowed_functionContext ctx) {
+                FuncName fname;
+                Expr expr = null;
+                OverClause overClause = null;
+                if (ctx.RANK() != null) {
+                    fname = FuncName.RANK;
+                } else if (ctx.DENSE_RANK() != null) {
+                    fname = FuncName.DENSE_RANK;
+                } else if (ctx.NTILE() != null) {
+                    fname = FuncName.NTILE;
+                } else if (ctx.ROW_NUMBER() != null) {
+                    fname = FuncName.ROW_NUMBER;
+                } else {
+                    fname = FuncName.UNKNOWN;
+                }
+                if (ctx.over_clause() != null) {
+                    overClause = OverClause.from(vc, ctx.over_clause());
+                }
+
+                return new FuncExpr(fname, expr, overClause);
+            }
+
             @Override
             public FuncExpr visitAggregate_windowed_function(VerdictSQLParser.Aggregate_windowed_functionContext ctx) {
                 FuncName fname;
@@ -475,7 +520,8 @@ public class FuncExpr extends Expr {
     @Override
     public String toString() {
         StringBuilder sql = new StringBuilder(50);
-        if (funcname == FuncName.CONCAT || funcname == FuncName.CONCAT_WS) {
+        if (funcname == FuncName.CONCAT || funcname == FuncName.CONCAT_WS ||
+                funcname == FuncName.COALESCE) {
             Joiner joiner = Joiner.on(",");
             List<String> exprStrList = new ArrayList<>();
             for (Expr e : expressions) {
@@ -576,7 +622,8 @@ public class FuncExpr extends Expr {
     @Override
     public String toSql() {
         StringBuilder sql = new StringBuilder(50);
-        if (funcname == FuncName.CONCAT || funcname == FuncName.CONCAT_WS) {
+        if (funcname == FuncName.CONCAT || funcname == FuncName.CONCAT_WS ||
+                funcname == FuncName.COALESCE) {
             Joiner joiner = Joiner.on(",");
             List<String> exprStrList = new ArrayList<>();
             for (Expr e : expressions) {

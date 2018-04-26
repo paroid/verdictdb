@@ -18,7 +18,7 @@ package edu.umich.verdict.relation.expr;
 
 import edu.umich.verdict.VerdictContext;
 
-public class ColNameExpr extends Expr {
+public class ColNameExpr extends Expr implements Comparable {
 
     private String col;
 
@@ -40,6 +40,11 @@ public class ColNameExpr extends Expr {
         this.col = col.toLowerCase().replace("\"", "").replace("`", "");
         this.tab = (tab != null) ? tab.toLowerCase().replace("\"", "").replace("`", "") : tab;
         this.schema = (schema != null) ? schema.toLowerCase().replace("\"", "").replace("`", "") : schema;
+    }
+
+    // This is basically a copy constructor.
+    public static ColNameExpr from(VerdictContext vc, ColNameExpr expr) {
+        return new ColNameExpr(vc, expr.getCol(), expr.getTab(), expr.getSchema());
     }
 
     public static ColNameExpr from(VerdictContext vc, String expr) {
@@ -65,6 +70,10 @@ public class ColNameExpr extends Expr {
         return schema;
     }
 
+    public void setSchema(String schema) {
+        this.schema = schema;
+    }
+
     public void setTab(String tab) {
         this.tab = tab;
     }
@@ -78,6 +87,16 @@ public class ColNameExpr extends Expr {
             return String.format("%s.%s", tab, quote(col));
         }
         return String.format("%s.%s.%s", schema, tab, quote(col));
+    }
+
+    public String toStringWithoutQuote() {
+        if (schema == null) {
+            if (tab == null) {
+                return String.format("%s", col);
+            }
+            return String.format("%s.%s", tab, col);
+        }
+        return String.format("%s.%s.%s", schema, tab, col);
     }
 
     public String getText() {
@@ -136,5 +155,11 @@ public class ColNameExpr extends Expr {
             }
         }
         return false;
+    }
+
+    @Override
+    public int compareTo(Object o) {
+        ColNameExpr other = (ColNameExpr) o;
+        return this.toString().compareTo(other.toString());
     }
 }

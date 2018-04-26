@@ -17,13 +17,9 @@
 package edu.umich.verdict.dbms;
 
 import java.sql.ResultSet;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
+import edu.umich.verdict.relation.expr.ColNameExpr;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -128,6 +124,10 @@ public abstract class Dbms {
             dbms = new DbmsRedshift(vc, dbName, host, port, schema, user, password, jdbcClassName);
         } else if (dbName.equals("dummy")) {
             dbms = new DbmsDummy(vc);
+        } else if (dbName.equals("postgresql")){
+            dbms = new DbmsPostgreSQL(vc, dbName, host, port, schema, user, password, jdbcClassName);
+        } else if (dbName.equals("h2")) {
+            dbms = new DbmsH2(vc, dbName, host, port, schema, user, password, jdbcClassName);
         } else {
             String msg = String.format("Unsupported DBMS: %s", dbName);
             VerdictLogger.error("Dbms", msg);
@@ -184,8 +184,13 @@ public abstract class Dbms {
     }
 
     public void createCatalog(String catalog) throws VerdictException {
-        String sql = String.format("create database if not exists %s", catalog);
-        executeUpdate(sql);
+        if (dbName.equalsIgnoreCase("h2")) {
+            String sql = String.format("create schema if not exists %s", catalog);
+            executeUpdate(sql);
+        } else {
+            String sql = String.format("create database if not exists %s", catalog);
+            executeUpdate(sql);
+        }
     }
 
     public void dropTable(TableUniqueName tableName) throws VerdictException {
@@ -272,8 +277,11 @@ public abstract class Dbms {
 
     public abstract long getTableSize(TableUniqueName tableName) throws VerdictException;
 
-    public void createMetaTablesInDMBS(TableUniqueName originalTableName, TableUniqueName sizeTableName,
-            TableUniqueName nameTableName) throws VerdictException {
+    public abstract long[] getGroupCount(TableUniqueName tableName,
+                                         List<SortedSet<ColNameExpr>> columnSetList) throws VerdictException;
+
+    public void createMetaTablesInDBMS(TableUniqueName originalTableName, TableUniqueName sizeTableName,
+                                       TableUniqueName nameTableName) throws VerdictException {
         VerdictLogger.debug(this, "Creates meta tables if not exist.");
         String sql = String.format("CREATE TABLE IF NOT EXISTS %s", sizeTableName) + " (schemaname STRING, "
                 + " tablename STRING, " + " samplesize BIGINT, " + " originaltablesize BIGINT)";
@@ -332,16 +340,19 @@ public abstract class Dbms {
         long total_size = vc.getMeta().getTableSize(param.getOriginalTable());
         long sample_size = getTableSize(temp);
 
-        String parquetString = "";
+        String storeString = "";
 
         if (vc.getConf().areSamplesStoredAsParquet()) {
-            parquetString = getParquetString();
+            storeString = getParquetString();
+        }
+        if (vc.getConf().areHiveSampleStoredAsOrc()) {
+            storeString = getORCString();
         }
 
         ExactRelation withRand = SingleRelation.from(vc, temp)
                 .select("*, " + String.format("%d / %d as %s", sample_size, total_size, samplingProbCol));
 
-        String sql = String.format("create table %s%s as %s", param.sampleTableName(), parquetString, withRand.toSql());
+        String sql = String.format("create table %s%s as %s", param.sampleTableName(), storeString, withRand.toSql());
         VerdictLogger.debug(this, "The query used for creating a temporary table with sampling probabilities:");
 //        VerdictLogger.debugPretty(this, Relation.prettyfySql(vc, sql), "  ");
 //        VerdictLogger.debug(this, sql);
@@ -493,13 +504,16 @@ public abstract class Dbms {
                 .select(Joiner.on(", ").join(selectElems) + String.format(", %s  / %s as %s", groupSizeInSampleColName,
                         groupSizeColName, samplingProbColName) + ", " + randomPartitionColumn());
 
-        String parquetString = "";
+        String storeString = "";
 
         if (vc.getConf().areSamplesStoredAsParquet()) {
-            parquetString = getParquetString();
+            storeString = getParquetString();
+        }
+        if (vc.getConf().areHiveSampleStoredAsOrc()) {
+            storeString = getORCString();
         }
 
-        String sql2 = String.format("create table %s%s as %s", param.sampleTableName(), parquetString,
+        String sql2 = String.format("create table %s%s as %s", param.sampleTableName(), storeString,
                 withRand.toSql());
         VerdictLogger.debug(this, "The query used for creating a stratified sample with sampling probabilities.");
 //        VerdictLogger.debugPretty(this, Relation.prettyfySql(vc, sql2), "  ");
@@ -551,12 +565,15 @@ public abstract class Dbms {
                                  .select(String.format("*, %d / %d AS %s", sample_size, total_size, samplingProbCol) + ", "
                                          + universePartitionColumn(param.getColumnNames()));
 
-        String parquetString = "";
+        String storeString = "";
         if (vc.getConf().areSamplesStoredAsParquet()) {
-            parquetString = getParquetString();
+            storeString = getParquetString();
+        }
+        if (vc.getConf().areHiveSampleStoredAsOrc()) {
+            storeString = getORCString();
         }
 
-        String sql = String.format("create table %s%s AS %s", param.sampleTableName(), parquetString, withProb.toSql());
+        String sql = String.format("create table %s%s AS %s", param.sampleTableName(), storeString, withProb.toSql());
         VerdictLogger.debug(this, "The query used for creating a universe sample with sampling probability:");
 //        VerdictLogger.debugPretty(this, Relation.prettyfySql(vc, sql), "  ");
 //        VerdictLogger.debug(this, sql);
@@ -763,5 +780,9 @@ public abstract class Dbms {
 
     public String getParquetString() {
         return " stored as parquet";
+    }
+
+    public String getORCString() {
+        return " stored as orc";
     }
 }

@@ -84,16 +84,6 @@ public class ApproxSetRelation extends ApproxRelation {
     }
 
     @Override
-    public ExactRelation rewriteWithSubsampledErrorBounds() {
-        ExactRelation newSource1 = source1.rewriteWithSubsampledErrorBounds();
-        ExactRelation newSource2 = source2.rewriteWithSubsampledErrorBounds();
-
-        SetRelation s = new SetRelation(vc, newSource1, newSource2, type);
-        s.setAlias(getAlias());
-        return s;
-    }
-
-    @Override
     protected List<Expr> samplingProbabilityExprsFor(FuncExpr f) {
         List<Expr> expr1 = source1.samplingProbabilityExprsFor(f);
         List<Expr> expr2 = source2.samplingProbabilityExprsFor(f);

@@ -17,13 +17,9 @@
 package edu.umich.verdict.dbms;
 
 import java.sql.ResultSet;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
+import edu.umich.verdict.relation.expr.ColNameExpr;
 import org.apache.commons.lang3.tuple.Pair;
 //import org.apache.spark.sql.DataFrame;
 import org.apache.spark.sql.Dataset;
@@ -84,8 +80,14 @@ public class DbmsDummy extends Dbms {
     }
 
     @Override
-    public void createMetaTablesInDMBS(TableUniqueName originalTableName, TableUniqueName sizeTableName,
-            TableUniqueName nameTableName) throws VerdictException {
+    public long[] getGroupCount(TableUniqueName tableName, List<SortedSet<ColNameExpr>> columnSetList)
+            throws VerdictException {
+        return null;
+    }
+
+    @Override
+    public void createMetaTablesInDBMS(TableUniqueName originalTableName, TableUniqueName sizeTableName,
+                                       TableUniqueName nameTableName) throws VerdictException {
     }
 
     @Override

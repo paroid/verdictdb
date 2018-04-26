@@ -46,6 +46,14 @@ public class ProjectedRelation extends ExactRelation {
         this.elems = elems;
     }
 
+    // Copy constructor.
+    public ProjectedRelation(ProjectedRelation other) {
+        super(other.vc);
+        this.name = other.name;
+        this.source = other.source;
+        this.elems = other.elems;
+    }
+
     // public static ProjectedRelation from(VerdictContext vc, AggregatedRelation r)
     // {
     // List<SelectElem> selectElems = new ArrayList<SelectElem>();
@@ -100,8 +108,11 @@ public class ProjectedRelation extends ExactRelation {
     }
 
     @Override
-    protected ApproxRelation approxWith(Map<TableUniqueName, SampleParam> replace) {
-        return null;
+    public ApproxRelation approxWith(Map<TableUniqueName, SampleParam> replace) {
+        ApproxRelation a = new ApproxProjectedRelation(vc, source.approxWith(replace), elems);
+        a.setAlias(getAlias());
+        a.setOriginalRelation(this);
+        return a;
     }
 
     @Override
@@ -283,6 +294,11 @@ public class ProjectedRelation extends ExactRelation {
         col.setTab(getAlias());
 
         return col;
+    }
+
+    @Override
+    public List<SelectElem> getSelectElemList() {
+        return elems;
     }
 
 }

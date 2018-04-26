@@ -60,6 +60,15 @@ public class AggregatedRelation extends ExactRelation {
         subquery = true;
     }
 
+    // Copy constructor.
+    public AggregatedRelation(AggregatedRelation other) {
+        super(other.vc);
+        this.name = other.name;
+        this.source = other.source;
+        this.elems = other.elems;
+        this.subquery = true;
+    }
+
     @Override
     protected String getSourceName() {
         return getAlias();
@@ -169,7 +178,10 @@ public class AggregatedRelation extends ExactRelation {
     }
 
     public ApproxRelation approxWith(Map<TableUniqueName, SampleParam> replace) {
-        return new ApproxAggregatedRelation(vc, source.approxWith(replace), elems);
+        ApproxRelation a = new ApproxAggregatedRelation(vc, source.approxWith(replace), elems);
+        a.setAlias(getAlias());
+        a.setOriginalRelation(this);
+        return a;
     }
 
     /*
@@ -248,6 +260,11 @@ public class AggregatedRelation extends ExactRelation {
     public ColNameExpr partitionColumn() {
         ColNameExpr col = new ColNameExpr(vc, partitionColumnName(), getAlias());
         return col;
+    }
+
+    @Override
+    public List<SelectElem> getSelectElemList() {
+        return elems;
     }
 
 }
