@@ -25,7 +25,6 @@ public abstract class VerdictTestBase {
             // load some data into embedded in-memory DB
 
         }
-
     }
 
     @AfterClass
