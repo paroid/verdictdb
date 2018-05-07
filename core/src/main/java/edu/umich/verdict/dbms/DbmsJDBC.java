@@ -81,6 +81,8 @@ public abstract class DbmsJDBC extends Dbms {
         } else if (dbName.equalsIgnoreCase("h2")) {
             String curDir = System.getProperty("user.dir");
             url = String.format("jdbc:h2:%s/h2_data/h2", curDir);
+        } else if (dbName.equalsIgnoreCase("h2mem")) {
+            url = "jdbc:h2:mem:verdict_test;DB_CLOSE_DELAY=-1";
         } else {
             url = composeUrl(dbName, host, port, schema, user, password);
         }
@@ -405,6 +407,11 @@ public abstract class DbmsJDBC extends Dbms {
         sql.append(Joiner.on(", ").join(StringManipulations.quoteString(values, with)));
         sql.append(")");
         executeUpdate(sql.toString());
+    }
+
+    @Override
+    public DbmsJDBC getDbmsJDBC() {
+        return this;
     }
 
     @Override

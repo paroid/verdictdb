@@ -126,7 +126,7 @@ public abstract class Dbms {
             dbms = new DbmsDummy(vc);
         } else if (dbName.equals("postgresql")){
             dbms = new DbmsPostgreSQL(vc, dbName, host, port, schema, user, password, jdbcClassName);
-        } else if (dbName.equals("h2")) {
+        } else if (dbName.equals("h2") || dbName.equals("h2mem")) {
             dbms = new DbmsH2(vc, dbName, host, port, schema, user, password, jdbcClassName);
         } else {
             String msg = String.format("Unsupported DBMS: %s", dbName);
@@ -748,6 +748,8 @@ public abstract class Dbms {
     public String samplingRatioColumnName() {
         return "__vratio";
     }
+
+    public abstract DbmsJDBC getDbmsJDBC();
 
     public boolean isJDBC() {
         return false;

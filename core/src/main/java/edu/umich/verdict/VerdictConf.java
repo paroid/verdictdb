@@ -211,7 +211,11 @@ public class VerdictConf {
     }
 
     public String getDbmsClassName() {
-        return get("verdict.jdbc." + getDbms() + ".class_name");
+        String dbms = getDbms();
+        if (dbms.equalsIgnoreCase("h2mem")) {
+            dbms = "h2";
+        }
+        return get("verdict.jdbc." + dbms + ".class_name");
     }
 
     public void setHost(String host) {

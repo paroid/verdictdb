@@ -275,4 +275,9 @@ public class DbmsSpark2 extends Dbms {
         return String.format("pmod(abs(rand(unix_timestamp())), %d)", mod);
     }
 
+    @Override
+    public DbmsJDBC getDbmsJDBC() {
+        return null;
+    }
+
 }

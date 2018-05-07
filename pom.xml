@@ -22,7 +22,7 @@
         <maven.compiler-plugin.version>3.7.0</maven.compiler-plugin.version>
         <maven.assembly-plugin.version>3.1.0</maven.assembly-plugin.version>
         <maven.failsafe.version>2.13</maven.failsafe.version>
-        <maven.surefire.version>2.12.4</maven.surefire.version>
+        <maven.surefire.version>2.19.1</maven.surefire.version>
         <maven.javadoc.version>2.10.4</maven.javadoc.version>
         <hive-jdbc.version>1.2.1</hive-jdbc.version>
         <hadoop-common.version>2.7.3</hadoop-common.version>

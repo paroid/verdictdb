@@ -154,4 +154,9 @@ public class DbmsDummy extends Dbms {
         return null;
     }
 
+    @Override
+    public DbmsJDBC getDbmsJDBC() {
+        return null;
+    }
+
 }
