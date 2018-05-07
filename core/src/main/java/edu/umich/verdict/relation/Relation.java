@@ -74,6 +74,8 @@ public abstract class Relation {
 
     protected String alias;
 
+    protected static final String UNKNOWN_TABLE_FOR_WINDOW_FUNC = "???VerdictDB_Table???";
+
     /**
      * uniform: uniform random sample arbitrary: sampling probabilities for tuples
      * may be all different. (there's no guarantee on uniformness). nosample: the
