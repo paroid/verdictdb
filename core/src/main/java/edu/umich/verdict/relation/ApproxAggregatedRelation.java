@@ -426,8 +426,6 @@ public class ApproxAggregatedRelation extends ApproxRelation {
                     scaled = BinaryOpExpr.from(vc, scaled, FuncExpr.count(), "/");
                     if (vc.getConf().getDbms().equalsIgnoreCase("h2")){
                         StringBuilder conditionExpr = new StringBuilder();
-                        // get the reference name of the table in from clause
-                        String from = ((ColNameExpr)groupby.get(0)).getTab();
                         for (int i=0;i<groupby.size();i++){
                             // get the table and column name to translate from window function to correlated query
                             String col = ((ColNameExpr)groupby.get(i)).getCol();
@@ -437,8 +435,12 @@ public class ApproxAggregatedRelation extends ApproxRelation {
                                 conditionExpr.append(" AND ");
                             }
                         }
-                        if (csql.length()>0) {
-                            conditionExpr.append(" AND " + csql);
+                        if (csql != null && !csql.isEmpty()) {
+                            if (conditionExpr.length() > 0) {
+                                conditionExpr.append(" AND " + csql);
+                            } else {
+                                conditionExpr.append(" " + csql);
+                            }
                         }
 
                         if (conditionExpr.length() > 0) {
@@ -484,8 +486,12 @@ public class ApproxAggregatedRelation extends ApproxRelation {
                                 conditionExpr.append(" AND ");
                             }
                         }
-                        if (csql.length()>0) {
-                            conditionExpr.append(" AND " + csql);
+                        if (csql != null && !csql.isEmpty()) {
+                            if (conditionExpr.length() > 0) {
+                                conditionExpr.append(" AND " + csql);
+                            } else {
+                                conditionExpr.append(" " + csql);
+                            }
                         }
                         if (conditionExpr.length() > 0) {
                             conditionExpr.insert(0, " where");
