@@ -98,15 +98,27 @@ public abstract class Query {
             try {
                 JdbcQueryResult jdbcQueryResult = new JdbcQueryResult(rs);
                 int columnCount = jdbcQueryResult.getColumnCount();
+                String lastAlias = "", lastOriginalAlias = "";
                 for (int i = 0; i < columnCount; ++i) {
                     // substitute each column's alias with its original alias (i.e., case-sensitive).
                     String alias = jdbcQueryResult.getColumnName(i);
+                    if (lastOriginalAlias.isEmpty()) lastOriginalAlias = alias;
+                    if (lastAlias.isEmpty()) lastAlias = alias;
+                    // handles '_err' columns created by verdictdb
+                    if (alias.endsWith("_err")) {
+                        String a = alias.substring(0, alias.length() - 4);
+                        if (a.equals(lastAlias)) {
+                            alias = lastOriginalAlias + "_err";
+                        }
+                    }
+                    lastAlias = alias;
                     List<String> originalAliasList = aliasMap.get(alias.toLowerCase());
                     String originalAlias = alias;
                     if (originalAliasList != null && !originalAliasList.isEmpty()) {
                         originalAlias = originalAliasList.get(0);
                         originalAliasList.remove(0);
                     }
+                    lastOriginalAlias = originalAlias;
                     jdbcQueryResult.setColumnName(i, originalAlias);
                 }
                 rs = new JdbcResultSet(jdbcQueryResult);
