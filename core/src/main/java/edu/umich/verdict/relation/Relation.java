@@ -74,6 +74,8 @@ public abstract class Relation {
 
     protected String alias;
 
+    protected List<SelectElem> selectElems;
+
     protected static final String UNKNOWN_TABLE_FOR_WINDOW_FUNC = "???VerdictDB_Table???";
 
     /**
@@ -92,6 +94,7 @@ public abstract class Relation {
         this.subquery = false;
         this.approximate = false;
         this.alias = genTableAlias();
+        this.selectElems = new ArrayList<>();
     }
 
     public VerdictContext getVerdictContext() {
@@ -116,6 +119,14 @@ public abstract class Relation {
 
     public void setAlias(String a) {
         alias = a.toLowerCase();
+    }
+
+    public List<SelectElem> getSelectElems() {
+        return selectElems;
+    }
+
+    public void setSelectElems(List<SelectElem> selectElems) {
+        this.selectElems = selectElems;
     }
 
     /**

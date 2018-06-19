@@ -37,9 +37,11 @@ public class ColNameExpr extends Expr implements Comparable {
     public ColNameExpr(VerdictContext vc, String col, String tab, String schema) {
         super(vc);
 
-        this.col = col.toLowerCase().replace("\"", "").replace("`", "");
-        this.tab = (tab != null) ? tab.toLowerCase().replace("\"", "").replace("`", "") : tab;
-        this.schema = (schema != null) ? schema.toLowerCase().replace("\"", "").replace("`", "") : schema;
+        // dongyoungy : 2018-06-19
+        // fixed to make it case-sensitive
+        this.col = col.replace("\"", "").replace("`", "");
+        this.tab = (tab != null) ? tab.replace("\"", "").replace("`", "") : tab;
+        this.schema = (schema != null) ? schema.replace("\"", "").replace("`", "") : schema;
     }
 
     // This is basically a copy constructor.
