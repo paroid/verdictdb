@@ -44,7 +44,7 @@ public class TableNameExpr extends Expr {
     }
 
     public void setSchema(String schema) {
-        this.schema = (schema == null)? null : schema.toLowerCase();
+        this.schema = schema;
     }
 
     public String getTable() {
@@ -52,7 +52,7 @@ public class TableNameExpr extends Expr {
     }
 
     public void setTable(String table) {
-        this.table = (table == null)? null : table.toLowerCase();
+        this.table = table;
     }
 
     public static TableNameExpr from(VerdictContext vc, Table_nameContext ctx) {
