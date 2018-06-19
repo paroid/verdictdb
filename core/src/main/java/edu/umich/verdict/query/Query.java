@@ -101,7 +101,7 @@ public abstract class Query {
                     String alias = jdbcQueryResult.getColumnName(i);
                     List<String> originalAliasList = aliasMap.get(alias.toLowerCase());
                     String originalAlias = alias;
-                    if (!originalAliasList.isEmpty()) {
+                    if (originalAliasList != null && !originalAliasList.isEmpty()) {
                         originalAlias = originalAliasList.get(0);
                         originalAliasList.remove(0);
                     }
