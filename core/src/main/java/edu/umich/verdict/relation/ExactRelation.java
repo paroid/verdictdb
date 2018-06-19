@@ -62,6 +62,7 @@ public abstract class ExactRelation extends Relation implements Comparable {
     public ExactRelation(VerdictContext vc) {
         super(vc);
         name = null;
+        selectElems = new ArrayList<>();
     }
 
     public static ExactRelation from(VerdictContext vc, String sql) {
@@ -70,12 +71,16 @@ public abstract class ExactRelation extends Relation implements Comparable {
 
         // clear subqueries.
         RelationGen.clearSubqueryMap();
-        return g.visit(p.select_statement());
+        ExactRelation r = g.visit(p.select_statement());
+        if (r != null) r.setSelectElems(g.getSelectElems());
+        return r;
     }
 
     public static ExactRelation from(VerdictContext vc, VerdictSQLParser.Select_statementContext ctx) {
         RelationGen g = new RelationGen(vc);
-        return g.visit(ctx);
+        ExactRelation r = g.visit(ctx);
+        if (r != null) r.setSelectElems(g.getSelectElems());
+        return r;
     }
 
     public ExactRelation withAlias(String alias) {
@@ -608,6 +613,10 @@ class RelationGen extends VerdictSQLBaseVisitor<ExactRelation> {
 
     public static void clearSubqueryMap() {
         subqueryMap.clear();
+    }
+
+    public List<SelectElem> getSelectElems() {
+        return selectElems;
     }
 
     @Override

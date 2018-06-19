@@ -17,8 +17,13 @@
 package edu.umich.verdict.query;
 
 import java.sql.ResultSet;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 //import org.apache.spark.sql.DataFrame;
+import edu.umich.verdict.relation.expr.SelectElem;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 
@@ -75,6 +80,14 @@ public abstract class Query {
     }
     
     protected void setResultsFromRelation(Relation r) throws VerdictException {
+        // construct alias map
+        Map<String, List<String>> aliasMap = new HashMap<>();
+        for (SelectElem elem : r.getSelectElems()) {
+            if (aliasMap.get(elem.getAlias().toLowerCase()) == null) {
+                aliasMap.put(elem.getAlias().toLowerCase(), new ArrayList<String>());
+            }
+            aliasMap.get(elem.getAlias().toLowerCase()).add(elem.getAlias());
+        }
         if (vc.getDbms().isJDBC()) {
             rs = r.collectResultSet();
 //        } else if (vc.getDbms().isSpark()) {
