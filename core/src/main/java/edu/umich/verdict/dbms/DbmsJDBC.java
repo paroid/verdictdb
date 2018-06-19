@@ -107,7 +107,9 @@ public abstract class DbmsJDBC extends Dbms {
             } else {
                 ResultSet rs = getDatabaseNamesInResultSet();
                 while (rs.next()) {
-                    databases.add(rs.getString(1).toLowerCase());
+                    // dongyoungy : 2018-06-19
+                    // fixed to make it case-sensitive
+                    databases.add(rs.getString(1));
                 }
             }
         } catch (SQLException e) {
@@ -126,7 +128,9 @@ public abstract class DbmsJDBC extends Dbms {
         try {
             ResultSet rs = getTablesInResultSet(schema);
             while (rs.next()) {
-                String table = rs.getString(1).toLowerCase();
+                // dongyoungy : 2018-06-19
+                // fixed to make it case-sensitive
+                String table = rs.getString(1);
                 tables.add(table);
             }
         } catch (SQLException e) {
@@ -142,12 +146,14 @@ public abstract class DbmsJDBC extends Dbms {
         try {
             ResultSet rs = describeTableInResultSet(table);
             while (rs != null && rs.next()) {
-                String column = rs.getString(1).toLowerCase();
+                // dongyoungy : 2018-06-19
+                // fixed to make it case-sensitive
+                String column = rs.getString(1);
                 if (!column.isEmpty()) {
                     if (column.substring(0,1).equals("#")) {
                         break;
                     }
-                    String type = rs.getString(2).toLowerCase();
+                    String type = rs.getString(2);
                     col2type.put(column, type);
                 }
             }
