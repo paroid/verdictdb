@@ -86,10 +86,12 @@ public abstract class Query {
         // construct alias map
         Map<String, List<String>> aliasMap = new HashMap<>();
         for (SelectElem elem : r.getSelectElems()) {
-            if (aliasMap.get(elem.getAlias().toLowerCase()) == null) {
-                aliasMap.put(elem.getAlias().toLowerCase(), new ArrayList<String>());
+            if (elem.aliasPresent()) {
+                if (aliasMap.get(elem.getAlias().toLowerCase()) == null) {
+                    aliasMap.put(elem.getAlias().toLowerCase(), new ArrayList<String>());
+                }
+                aliasMap.get(elem.getAlias().toLowerCase()).add(elem.getAlias());
             }
-            aliasMap.get(elem.getAlias().toLowerCase()).add(elem.getAlias());
         }
         if (vc.getDbms().isJDBC()) {
             rs = r.collectResultSet();
