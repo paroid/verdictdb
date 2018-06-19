@@ -44,8 +44,10 @@ public class TableUniqueName implements Serializable, Comparable<TableUniqueName
     }
 
     public TableUniqueName(String schemaName, String tableName) {
-        this.schemaName = (schemaName != null) ? schemaName.toLowerCase() : schemaName;
-        this.tableName = (tableName != null) ? tableName.toLowerCase() : tableName;
+        // dongyoungy : 2018-06-19
+        // fixed to make it case-sensitive.
+        this.schemaName = schemaName;
+        this.tableName = tableName;
     }
 
     public static TableUniqueName uname(String schemaName, String tableName) {

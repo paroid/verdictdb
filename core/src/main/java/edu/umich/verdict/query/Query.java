@@ -17,8 +17,16 @@
 package edu.umich.verdict.query;
 
 import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 //import org.apache.spark.sql.DataFrame;
+import edu.umich.verdict.datatypes.JdbcQueryResult;
+import edu.umich.verdict.datatypes.JdbcResultSet;
+import edu.umich.verdict.relation.expr.SelectElem;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 
@@ -75,10 +83,34 @@ public abstract class Query {
     }
     
     protected void setResultsFromRelation(Relation r) throws VerdictException {
+        // construct alias map
+        Map<String, List<String>> aliasMap = new HashMap<>();
+        for (SelectElem elem : r.getSelectElems()) {
+            if (aliasMap.get(elem.getAlias().toLowerCase()) == null) {
+                aliasMap.put(elem.getAlias().toLowerCase(), new ArrayList<String>());
+            }
+            aliasMap.get(elem.getAlias().toLowerCase()).add(elem.getAlias());
+        }
         if (vc.getDbms().isJDBC()) {
             rs = r.collectResultSet();
-//        } else if (vc.getDbms().isSpark()) {
-//            df = r.collectDataFrame();
+            try {
+                JdbcQueryResult jdbcQueryResult = new JdbcQueryResult(rs);
+                int columnCount = jdbcQueryResult.getColumnCount();
+                for (int i = 0; i < columnCount; ++i) {
+                    // substitute each column's alias with its original alias (i.e., case-sensitive).
+                    String alias = jdbcQueryResult.getColumnName(i);
+                    List<String> originalAliasList = aliasMap.get(alias.toLowerCase());
+                    String originalAlias = alias;
+                    if (!originalAliasList.isEmpty()) {
+                        originalAlias = originalAliasList.get(0);
+                        originalAliasList.remove(0);
+                    }
+                    jdbcQueryResult.setColumnName(i, originalAlias);
+                }
+                rs = new JdbcResultSet(jdbcQueryResult);
+            } catch (SQLException e) {
+                throw new VerdictException(e);
+            }
         } else if (vc.getDbms().isSpark2()) {
             ds = r.collectDataset();
         }
