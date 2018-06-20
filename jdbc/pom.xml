@@ -7,7 +7,7 @@
 
     <parent>
         <groupId>edu.umich</groupId>
-        <artifactId>verdict</artifactId>
+        <artifactId>verdictdb</artifactId>
         <version>0.4.8</version>
     </parent>
 
@@ -45,7 +45,7 @@
                     <descriptorRefs>
                         <descriptorRef>jar-with-dependencies</descriptorRef>
                     </descriptorRefs>
-                    <finalName>verdict-jdbc-${verdict.version}</finalName>
+                    <finalName>${verdictdb.name}-${verdictdb.version}</finalName>
                     <outputDirectory>${main.basedir}/jars</outputDirectory>
                 </configuration>
             </plugin>
@@ -62,7 +62,7 @@
         <dependency>
             <groupId>edu.umich</groupId>
             <artifactId>verdict-core</artifactId>
-            <version>${verdict.version}</version>
+            <version>${verdictdb.version}</version>
         </dependency>
 
         <!-- test supports -->

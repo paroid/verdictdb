@@ -2,14 +2,15 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>edu.umich</groupId>
-    <artifactId>verdict</artifactId>
+    <artifactId>verdictdb</artifactId>
     <packaging>pom</packaging>
     <version>0.4.8</version>
     <name>Verdict</name>
     <url>http://verdictdb.org</url>
 
     <properties>
-        <verdict.version>0.4.8</verdict.version>
+        <verdictdb.version>0.4.8</verdictdb.version>
+        <verdictdb.name>verdictdb</verdictdb.name>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <antlr4.visitor>true</antlr4.visitor>
         <antlr4.version>4.5.3</antlr4.version>
