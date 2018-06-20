@@ -5,12 +5,13 @@
     <artifactId>verdictdb</artifactId>
     <packaging>pom</packaging>
     <version>0.4.8</version>
-    <name>Verdict</name>
+    <name>VerdictDB</name>
     <url>http://verdictdb.org</url>
 
     <properties>
         <verdictdb.version>0.4.8</verdictdb.version>
         <verdictdb.name>verdictdb</verdictdb.name>
+        <verdictdb.pretty.name>VerdictDB</verdictdb.pretty.name>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <antlr4.visitor>true</antlr4.visitor>
         <antlr4.version>4.5.3</antlr4.version>
