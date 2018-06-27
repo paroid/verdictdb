@@ -4,7 +4,7 @@
 BINPATH=$(dirname $0)
 JAR_DIR=$BINPATH/../jars
 JDBC_DIR=$BINPATH/../jdbc_jars
-VERSION=0.4.8
+VERSION=0.4.9
 #JDBC_JAR=$JAR_DIR/verdict-jdbc-$VERSION.jar
 #VEELINE_JAR=$JAR_DIR/verdict-shell-$VERSION.jar
 verbose=true

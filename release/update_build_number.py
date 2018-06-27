@@ -41,7 +41,7 @@ def with_namespace(tag):
     return '%s%s' % (namespace, tag)
 
 def pretty_print_xml(filename, tree):
-    with open(filename, 'w') as f:
+    with open(filename, 'wb') as f:
         f.write(etree.tostring(tree.getroot(), pretty_print=True))
 
 def populate_version_info_in_main_pom(pom_filename, j_version):
