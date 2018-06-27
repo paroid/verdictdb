@@ -108,4 +108,12 @@ public class TableUniqueName implements Serializable, Comparable<TableUniqueName
             return this.schemaName.compareTo(another.schemaName);
         }
     }
+
+    public Object toSql(String quoteString) {
+      if (schemaName == null) {
+        return quoteString + tableName + quoteString;
+      } else {
+        return quoteString + schemaName + quoteString + "." + quoteString + tableName + quoteString;
+      }
+    }
 }
