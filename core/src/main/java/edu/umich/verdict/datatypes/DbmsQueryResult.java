@@ -1,6 +1,12 @@
 package edu.umich.verdict.datatypes;
 
 public interface DbmsQueryResult {
+
+  /**
+   *
+   * @return Meta Data from ResultSet
+   */
+  public DbmsQueryResultMetaData getMetaData();
   
   public int getColumnCount();
   
