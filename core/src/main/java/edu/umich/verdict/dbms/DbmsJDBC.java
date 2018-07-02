@@ -221,7 +221,7 @@ public abstract class DbmsJDBC extends Dbms {
 
     protected Connection makeDbmsConnection(String url, String className) throws VerdictException {
         try {
-            Class.forName(className);
+//            Class.forName(className);
             String passMasked = url.replaceAll("(;password)=([^;]+)", "$1=masked").replaceAll("(;PWD)=([^;]+)",
                     "$1=masked");
             ;
@@ -233,9 +233,9 @@ public abstract class DbmsJDBC extends Dbms {
                 stmt.execute("USE " + currentSchema.get());
             }
             return conn;
-        } catch (ClassNotFoundException e) {
-            VerdictLogger.error(this, "JDBC driver not found.");
-            throw new VerdictException(StackTraceReader.stackTrace2String(e));
+//        } catch (ClassNotFoundException e) {
+//            VerdictLogger.error(this, "JDBC driver not found.");
+//            throw new VerdictException(StackTraceReader.stackTrace2String(e));
         } catch (SQLException e) {
             VerdictLogger.error(this, "Failed to connect to the database. Please check the server URL or client JDBC version.");
             throw new VerdictException(StackTraceReader.stackTrace2String(e));

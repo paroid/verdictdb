@@ -8,7 +8,7 @@
     <parent>
         <groupId>edu.umich</groupId>
         <artifactId>verdict</artifactId>
-        <version>0.4.9</version>
+        <version>0.4.10</version>
     </parent>
 
     <properties>
