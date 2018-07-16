@@ -306,6 +306,12 @@ public abstract class Relation {
     public String partitionColumnName() {
         return vc.getDbms().partitionColumnName();
     }
+    
+    public static void resetAliasNumbers() {
+      tab_alias_no = 1;
+      col_alias_no = 1;
+      temp_tab_no = 1;
+    }
 
     // /**
     // * Used when a universe sample is used for distinct-count.

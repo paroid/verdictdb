@@ -58,74 +58,75 @@ public class JdbcResultSet implements ResultSet {
   }
 
   private boolean isValidType(String expected, int columnindex){
-    String actual = DataTypeConverter.typeName(queryResult.getColumnType(columnindex));
-    if (queryResult.getColumnType(columnindex) == DOUBLE) actual = "real";
-    if (expected.equals("boolean")) {
-      return numericType.contains(actual) || actual.equals("boolean") || actual.equals("bit");
-    }
-    else if (expected.equals("byte")) {
-      return numericType.contains(actual) || actual.equals("boolean") || actual.equals("bit");
-    }
-    else if (expected.equals("short")) {
-      return numericType.contains(actual) || actual.equals("boolean") || actual.equals("bit");
-    }
-    else if (expected.equals("int")) {
-      return numericType.contains(actual) || actual.equals("boolean") || actual.equals("bit");
-    }
-    else if (expected.equals("long")) {
-      return numericType.contains(actual) || actual.equals("boolean") || actual.equals("bit");
-    }
-    else if (expected.equals("float")) {
-      return numericType.contains(actual);
-    }
-    else if (expected.equals("double")) {
-      return numericType.contains(actual);
-    }
-    else if (expected.equals("bigdecimal")) {
-      return numericType.contains(actual);
-    }
-    else if (expected.equals("bytes")) {
-      return  actual.equals("binary") || actual.equals("varbinary") || actual.equals("longvarbinary")
-          || actual.equals("blob");
-    }
-    else if (expected.equals("date")) {
-      return  actual.equals("timestamp") || actual.equals("date") || actual.equals("time");
-    }
-    else if (expected.equals("time")) {
-      return  actual.equals("timestamp") || actual.equals("date") || actual.equals("time");
-    }
-    else if (expected.equals("timestamp")) {
-      return actual.equals("timestamp") || actual.equals("date") || actual.equals("time");
-    }
-    else if (expected.equals("asciistream")) {
-      return actual.equals("clob");
-    }
-    else if (expected.equals("binarystream")) {
-      return actual.equals("blob") || actual.equals("binary") || actual.equals("varbinary")
-          || actual.equals("longvarbinary");
-    }
-    else if (expected.equals("blob")) {
-      return actual.equals("blob");
-    }
-    else if (expected.equals("clob")) {
-      return actual.equals("clob");
-    }
-    else if (expected.equals("array")) {
-      return actual.equals("array");
-    }
-    else if (expected.equals("ref")) {
-      return actual.equals("ref");
-    }
-    else if (expected.equals("sqlxml")) {
-      return actual.equals("xml");
-    }
-    else if (expected.equals("rowid")) {
-      return actual.equals("rowid");
-    }
-    else if (expected.equals("nclob")) {
-      return actual.equals("nclob");
-    }
-    else return false;
+    return true;
+//    String actual = DataTypeConverter.typeName(queryResult.getColumnType(columnindex));
+//    if (queryResult.getColumnType(columnindex) == DOUBLE) actual = "real";
+//    if (expected.equals("boolean")) {
+//      return numericType.contains(actual) || actual.equals("boolean") || actual.equals("bit");
+//    }
+//    else if (expected.equals("byte")) {
+//      return numericType.contains(actual) || actual.equals("boolean") || actual.equals("bit");
+//    }
+//    else if (expected.equals("short")) {
+//      return numericType.contains(actual) || actual.equals("boolean") || actual.equals("bit");
+//    }
+//    else if (expected.equals("int")) {
+//      return numericType.contains(actual) || actual.equals("boolean") || actual.equals("bit");
+//    }
+//    else if (expected.equals("long")) {
+//      return numericType.contains(actual) || actual.equals("boolean") || actual.equals("bit");
+//    }
+//    else if (expected.equals("float")) {
+//      return numericType.contains(actual);
+//    }
+//    else if (expected.equals("double")) {
+//      return numericType.contains(actual);
+//    }
+//    else if (expected.equals("bigdecimal")) {
+//      return numericType.contains(actual);
+//    }
+//    else if (expected.equals("bytes")) {
+//      return  actual.equals("binary") || actual.equals("varbinary") || actual.equals("longvarbinary")
+//          || actual.equals("blob");
+//    }
+//    else if (expected.equals("date")) {
+//      return  actual.equals("timestamp") || actual.equals("date") || actual.equals("time");
+//    }
+//    else if (expected.equals("time")) {
+//      return  actual.equals("timestamp") || actual.equals("date") || actual.equals("time");
+//    }
+//    else if (expected.equals("timestamp")) {
+//      return actual.equals("timestamp") || actual.equals("date") || actual.equals("time");
+//    }
+//    else if (expected.equals("asciistream")) {
+//      return actual.equals("clob");
+//    }
+//    else if (expected.equals("binarystream")) {
+//      return actual.equals("blob") || actual.equals("binary") || actual.equals("varbinary")
+//          || actual.equals("longvarbinary");
+//    }
+//    else if (expected.equals("blob")) {
+//      return actual.equals("blob");
+//    }
+//    else if (expected.equals("clob")) {
+//      return actual.equals("clob");
+//    }
+//    else if (expected.equals("array")) {
+//      return actual.equals("array");
+//    }
+//    else if (expected.equals("ref")) {
+//      return actual.equals("ref");
+//    }
+//    else if (expected.equals("sqlxml")) {
+//      return actual.equals("xml");
+//    }
+//    else if (expected.equals("rowid")) {
+//      return actual.equals("rowid");
+//    }
+//    else if (expected.equals("nclob")) {
+//      return actual.equals("nclob");
+//    }
+//    else return false;
   }
 
   @Override

@@ -44,7 +44,7 @@ public class TableNameExpr extends Expr {
     }
 
     public void setSchema(String schema) {
-        this.schema = schema;
+        this.schema = schema.replace("\"", "").replace("`", "");
     }
 
     public String getTable() {
@@ -52,7 +52,7 @@ public class TableNameExpr extends Expr {
     }
 
     public void setTable(String table) {
-        this.table = table;
+        this.table = table.replace("\"", "").replace("`", "");
     }
 
     public static TableNameExpr from(VerdictContext vc, Table_nameContext ctx) {
@@ -64,7 +64,7 @@ public class TableNameExpr extends Expr {
         if (ctx.table != null) {
             table = ctx.table.getText();
         }
-        return new TableNameExpr (vc, schema, table);
+        return new TableNameExpr(vc, schema, table);
     }
 
     @Override
@@ -90,9 +90,9 @@ public class TableNameExpr extends Expr {
     @Override
     public String toString() {
         if (schema == null) {
-            return table;
+            return quote(table);
         } else {
-            return schema + "." + table;
+            return quote(schema) + "." + quote(table);
         }
     }
 

@@ -222,6 +222,7 @@ public abstract class DbmsJDBC extends Dbms {
     protected Connection makeDbmsConnection(String url, String className) throws VerdictException {
         try {
             Class.forName(className);
+//          Class.forName("com.amazon.redshift.jdbc4.Driver");
             String passMasked = url.replaceAll("(;password)=([^;]+)", "$1=masked").replaceAll("(;PWD)=([^;]+)",
                     "$1=masked");
             ;

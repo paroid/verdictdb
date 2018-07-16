@@ -485,7 +485,7 @@ public abstract class ExactRelation extends Relation implements Comparable {
             SingleRelation asource = (SingleRelation) source;
             TableUniqueName tableName = asource.getTableName();
             String alias = asource.getAlias();
-            return String.format("%s AS %s", tableName, alias);
+            return String.format("%s AS %s", tableName.toSql(vc.getDbms().getQuoteString()), alias);
         } else if (source instanceof JoinedRelation) {
             return ((JoinedRelation) source).joinClause();
         } else if (source instanceof LateralViewRelation) {
@@ -1146,7 +1146,7 @@ class RelationGen extends VerdictSQLBaseVisitor<ExactRelation> {
 
     @Override
     public ExactRelation visitHinted_table_name_item(VerdictSQLParser.Hinted_table_name_itemContext ctx) {
-        String tableName = ctx.table_name_with_hint().table_name().getText();
+        String tableName = ctx.table_name_with_hint().table_name().getText().replace("\"", "").replace("`", "");
         ExactRelation r;
         if (subqueryMap.containsKey(tableName)) {
             r = subqueryMap.get(tableName);
