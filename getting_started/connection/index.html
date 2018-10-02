@@ -11,7 +11,7 @@
       <meta http-equiv="x-ua-compatible" content="ie=edge">
       
       
-        <link rel="canonical" href="https://verdictdb.org/getting_started/connection/">
+        <link rel="canonical" href="https://docs.verdictdb.org/getting_started/connection/">
       
       
       
@@ -34,11 +34,11 @@
         <meta name="lang:search.tokenizer" content="[\s\-]+">
       
       <link rel="shortcut icon" href="../../images/verdictdb-favicon.png">
-      <meta name="generator" content="mkdocs-0.17.5, mkdocs-material-2.9.4">
+      <meta name="generator" content="mkdocs-1.0.4, mkdocs-material-3.0.4">
     
     
       
-        <title>Connecting to Data Sources - VerdictDB Docs</title>
+        <title>Connecting to Data Sources - VerdictDB Documentation</title>
       
     
     
@@ -56,8 +56,8 @@
       <script src="../../assets/javascripts/modernizr.1aa3b519.js"></script>
     
     
-      <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
       
+        <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
         <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,400i,700|Inconsolata">
         <style>body,input{font-family:"Open Sans","Helvetica Neue",Helvetica,Arial,sans-serif}code,kbd,pre{font-family:"Inconsolata","Courier New",Courier,monospace}</style>
       
@@ -102,7 +102,7 @@
     <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
     <label class="md-overlay" data-md-component="overlay" for="__drawer"></label>
     
-      <a href="#connecting-to-data-sources" tabindex="1" class="md-skip">
+      <a href="../../#connecting-to-data-sources" tabindex="1" class="md-skip">
         Skip to content
       </a>
     
@@ -111,7 +111,7 @@
   <nav class="md-header-nav md-grid">
     <div class="md-flex">
       <div class="md-flex__cell md-flex__cell--shrink">
-        <a href="https://verdictdb.org/" title="VerdictDB Docs" class="md-header-nav__button md-logo">
+        <a href="https://docs.verdictdb.org/" title="VerdictDB Documentation" class="md-header-nav__button md-logo">
           
             <img src="../../images/verdictdb-logo-icon.png" width="24" height="24">
           
@@ -125,7 +125,7 @@
           
             
               <span class="md-header-nav__topic">
-                VerdictDB Docs
+                VerdictDB Documentation
               </span>
               <span class="md-header-nav__topic">
                 Connecting to Data Sources
@@ -234,7 +234,7 @@
   
     <li class="md-tabs__item">
       
-        <a href="../../how_it_works/architecture/" title="How it works" class="md-tabs__link">
+        <a href="../../how_it_works/basics/" title="How it works" class="md-tabs__link">
           How it works
         </a>
       
@@ -245,26 +245,38 @@
         
   
   
+    
+    
+  
+  
     <li class="md-tabs__item">
       
-        <a href="../../tutorial/tpch/" title="Tutorial" class="md-tabs__link">
+        <a href="../../tutorial/setup/mysql/" title="Tutorial" class="md-tabs__link">
           Tutorial
         </a>
       
     </li>
   
 
+  
+
       
         
   
   
+    
+    
+  
+  
     <li class="md-tabs__item">
       
-        <a href="../../reference/supported_queries/" title="Reference" class="md-tabs__link">
+        <a href="../../reference/scrambling_syntax/" title="Reference" class="md-tabs__link">
           Reference
         </a>
       
     </li>
+  
+
   
 
       
@@ -281,12 +293,12 @@
                   <div class="md-sidebar__inner">
                     <nav class="md-nav md-nav--primary" data-md-level="0">
   <label class="md-nav__title md-nav__title--site" for="__drawer">
-    <a href="https://verdictdb.org/" title="VerdictDB Docs" class="md-nav__button md-logo">
+    <a href="https://docs.verdictdb.org/" title="VerdictDB Documentation" class="md-nav__button md-logo">
       
         <img src="../../images/verdictdb-logo-icon.png" width="48" height="48">
       
     </a>
-    VerdictDB Docs
+    VerdictDB Documentation
   </label>
   
     <div class="md-nav__source">
@@ -364,8 +376,8 @@
 
 
   <li class="md-nav__item">
-    <a href="../install/" title="Download/Install" class="md-nav__link">
-      Download/Install
+    <a href="../install/" title="Download / Install" class="md-nav__link">
+      Download / Install
     </a>
   </li>
 
@@ -561,6 +573,18 @@
 
 
   <li class="md-nav__item">
+    <a href="../properties/" title="VerdictDB JDBC Properties" class="md-nav__link">
+      VerdictDB JDBC Properties
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
     <a href="../scrambling/" title="Creating Scrambles" class="md-nav__link">
       Creating Scrambles
     </a>
@@ -573,8 +597,20 @@
 
 
   <li class="md-nav__item">
-    <a href="../querying/" title="Interactive Querying" class="md-nav__link">
-      Interactive Querying
+    <a href="../querying/" title="Simple Querying" class="md-nav__link">
+      Simple Querying
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../streaming/" title="Stream Querying" class="md-nav__link">
+      Stream Querying
     </a>
   </li>
 
@@ -602,6 +638,18 @@
       </label>
       <ul class="md-nav__list" data-md-scrollfix>
         
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../how_it_works/basics/" title="Basics" class="md-nav__link">
+      Basics
+    </a>
+  </li>
+
         
           
           
@@ -656,9 +704,117 @@
           
 
 
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-4-1" type="checkbox" id="nav-4-1">
+    
+    <label class="md-nav__link" for="nav-4-1">
+      Setup Databases (optional)
+    </label>
+    <nav class="md-nav" data-md-component="collapsible" data-md-level="2">
+      <label class="md-nav__title" for="nav-4-1">
+        Setup Databases (optional)
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
   <li class="md-nav__item">
-    <a href="../../tutorial/tpch/" title="Setup TPC-H Data" class="md-nav__link">
-      Setup TPC-H Data
+    <a href="../../tutorial/setup/mysql/" title="MySQL" class="md-nav__link">
+      MySQL
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../tutorial/setup/spark/" title="Apache Spark" class="md-nav__link">
+      Apache Spark
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../tutorial/tpch/" title="Load TPC-H Data" class="md-nav__link">
+      Load TPC-H Data
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-4-3" type="checkbox" id="nav-4-3">
+    
+    <label class="md-nav__link" for="nav-4-3">
+      Example VerdictDB App
+    </label>
+    <nav class="md-nav" data-md-component="collapsible" data-md-level="2">
+      <label class="md-nav__title" for="nav-4-3">
+        Example VerdictDB App
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../tutorial/examples/mysql/" title="MySQL" class="md-nav__link">
+      MySQL
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../tutorial/examples/spark/" title="Apache Spark" class="md-nav__link">
+      Apache Spark
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../tutorial/advanced/" title="ML-based Analytics" class="md-nav__link">
+      ML-based Analytics
     </a>
   </li>
 
@@ -692,9 +848,57 @@
           
 
 
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-5-1" type="checkbox" id="nav-5-1">
+    
+    <label class="md-nav__link" for="nav-5-1">
+      Query Syntax
+    </label>
+    <nav class="md-nav" data-md-component="collapsible" data-md-level="2">
+      <label class="md-nav__title" for="nav-5-1">
+        Query Syntax
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
   <li class="md-nav__item">
-    <a href="../../reference/supported_queries/" title="VerdictDB Queries" class="md-nav__link">
-      VerdictDB Queries
+    <a href="../../reference/scrambling_syntax/" title="Scrambling" class="md-nav__link">
+      Scrambling
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../reference/query_syntax/" title="Select Query" class="md-nav__link">
+      Select Query
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../reference/javadoc/" title="Javadoc" class="md-nav__link">
+      Javadoc
     </a>
   </li>
 
@@ -886,6 +1090,7 @@
                 
                 
                 <h1 id="connecting-to-data-sources">Connecting to Data Sources<a class="headerlink" href="#connecting-to-data-sources" title="Permanent link">&para;</a></h1>
+<p>VerdictDB can process the data stored in a SQL-supported database; therefore, no data migration is required outside your database. VerdictDB works with them by performing its operations in SQL.</p>
 <h2 id="supported-databases">Supported Databases<a class="headerlink" href="#supported-databases" title="Permanent link">&para;</a></h2>
 <ul>
 <li>MySQL 5.5 or later</li>
@@ -904,11 +1109,12 @@
 <h2 id="connection-options">Connection Options<a class="headerlink" href="#connection-options" title="Permanent link">&para;</a></h2>
 <ol>
 <li><strong>Standard JDBC Interface</strong>: One can issue queries to and retrieve the results from VerdictDB using the standard JDBC interface. This approach is applicable for all databases that support the JDBC interface. For VerdictDB to retrieve data from the backend database, VerdictDB requires the connection information to the backend database. This connection information can be specified by either of the two ways, as follows.<ul>
-<li><strong>JDBC string</strong>: Passing a modified JDBC string to the standard Java DriverManager. See database-specific examples below.</li>
+<li><strong>JDBC string (recommended)</strong>: Passing a modified JDBC string to the standard Java DriverManager. See database-specific examples below. This approach is recommended since VerdictDB then maintains a pool of multiple JDBC connections internally for possible parallel processing.</li>
 <li><strong>JDBC connection</strong>: Passing an already established JDBC connection (to the backend DB) to VerdictDB. See database-specific examples below.</li>
 </ul>
 </li>
-<li><strong>VerdictContext</strong>: One can also connect to VerdictDB directly using its own interface called VerdictContext. An instance of VerdictContext can be created either using the JDBC connection information or using an instance of SparkSession. The query results returned from VerdictContext use ?? for convenient operations.</li>
+<li><strong>VerdictContext</strong>: One can also connect to VerdictDB directly using its own interface called VerdictContext. An instance of VerdictContext can be created either using the JDBC connection information or using an instance of SparkSession.
+<!-- The query results returned from VerdictContext use ?? for convenient operations. --></li>
 </ol>
 <h2 id="mysql">MySQL<a class="headerlink" href="#mysql" title="Permanent link">&para;</a></h2>
 <h3 id="jdbc-string">JDBC string<a class="headerlink" href="#jdbc-string" title="Permanent link">&para;</a></h3>
@@ -1010,7 +1216,7 @@
     <div class="md-footer-nav">
       <nav class="md-footer-nav__inner md-grid">
         
-          <a href="../install/" title="Download/Install" class="md-flex md-footer-nav__link md-footer-nav__link--prev" rel="prev">
+          <a href="../install/" title="Download / Install" class="md-flex md-footer-nav__link md-footer-nav__link--prev" rel="prev">
             <div class="md-flex__cell md-flex__cell--shrink">
               <i class="md-icon md-icon--arrow-back md-footer-nav__button"></i>
             </div>
@@ -1019,19 +1225,19 @@
                 <span class="md-footer-nav__direction">
                   Previous
                 </span>
-                Download/Install
+                Download / Install
               </span>
             </div>
           </a>
         
         
-          <a href="../scrambling/" title="Creating Scrambles" class="md-flex md-footer-nav__link md-footer-nav__link--next" rel="next">
+          <a href="../properties/" title="VerdictDB JDBC Properties" class="md-flex md-footer-nav__link md-footer-nav__link--next" rel="next">
             <div class="md-flex__cell md-flex__cell--stretch md-footer-nav__title">
               <span class="md-flex__ellipsis">
                 <span class="md-footer-nav__direction">
                   Next
                 </span>
-                Creating Scrambles
+                VerdictDB JDBC Properties
               </span>
             </div>
             <div class="md-flex__cell md-flex__cell--shrink">
@@ -1065,9 +1271,11 @@
       
     </div>
     
-      <script src="../../assets/javascripts/application.30f6b8b1.js"></script>
+      <script src="../../assets/javascripts/application.583bbe55.js"></script>
       
-      <script>app.initialize({version:"0.17.5",url:{base:"../.."}})</script>
+      <script>app.initialize({version:"1.0.4",url:{base:"../.."}})</script>
+      
+        <script src="../../javascripts/extra.js"></script>
       
     
     
