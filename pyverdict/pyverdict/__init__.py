@@ -27,8 +27,15 @@ def mysql_context(host, user, password=None, port=3306):
 def mysql(host, user, password=None, port=3306):
     return mysql_context(host, user, password, port)
 
-def presto_context(host, catalog, user, password=None, port=8081):
+def presto_context(host, catalog, user, password=None, port=8080):
     return VerdictContext.new_presto_context(host, catalog, user, password, port)
 
-def presto(host, catalog, user, password=None, port=8081):
+def presto(host, catalog, user, password=None, port=8080):
     return presto_context(host, catalog, user, password, port)
+
+def spark(spark):
+    '''
+    Args:
+        spark: pyspark's spark session instance.
+    '''
+    return VerdictContext.new_spark_context(spark)

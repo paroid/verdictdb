@@ -14,14 +14,60 @@
     limitations under the License.
 '''
 import atexit
+import importlib
 import os
+from py4j.java_gateway import JavaGateway
 import pkg_resources
 import sys
 from .verdictresult import SingleResultSet
 from . import verdictcommon
 from .verdictexception import *
-from py4j.java_gateway import JavaGateway
 from time import sleep, time
+
+
+class Py4jReloader:
+    '''
+    To load py4j from the original system path (not from spark's lib folder)
+    Note: pyspark seems to create a temp directory for py4j, which is no longer
+          accessible after its initialization is done. However, the name 'py4j'
+          still hides the system py4j.
+    '''
+    def __init__(self):
+        original_sys_path = sys.path
+        no_spark_sys_path = []
+        for p in original_sys_path:
+            if 'spark' not in p:
+                no_spark_sys_path.append(p)
+        sys.path = no_spark_sys_path    # change temporarily
+        importlib.reload(py4j)
+        self.reload_modules_in(py4j)
+        self._java_gateway = py4j.java_gateway.JavaGateway
+        # sys.path = original_sys_path    # restore sys.path
+        # importlib.reload(py4j)          # restore py4j
+
+    def reload_modules_in(self, package):
+        from types import ModuleType
+        modules_to_import = []
+        for name in dir(package):
+            submodule = getattr(package, name)
+            if isinstance(submodule, ModuleType):
+                # print(submodule)
+                modules_to_import.append(submodule)
+
+        # the import must follow a certain order; however, we do not know that.
+        # thus, we try until all modules are imported
+        while len(modules_to_import) > 0:
+            submodule = modules_to_import.pop(0)
+            try:
+                importlib.reload(submodule)
+            except ImportError:
+                modules_to_import.append(submodule)
+
+    def get_java_gateway(self):
+        return self._java_gateway
+
+# py4j_reloader = Py4jReloader()
+
 
 # To properly close all connections
 created_verdict_contexts = []
@@ -49,17 +95,30 @@ class VerdictContext:
                           jar file. This arg can either be a single str or a
                           list of str; each str is an absolute path
                           to a jar file.
+        spark_session: an instance of pyspark.sql.session
     """
 
-    def __init__(self, url, extra_class_path=None):
+    def __init__(self, url, extra_class_path=None, spark_session=None):
         self._gateway = self._get_gateway(extra_class_path)
-        self._context = self._get_context(self._gateway, url)
-        self._dbtype = self._get_dbtype(url)
-        self._url = url
+        if url is not None:
+            self._context = self._get_context(self._gateway, url)
+            self._dbtype = self._get_dbtype(url)
+            self._url = url
+        if spark_session is not None:
+            self._spark_session = spark_session
+            self._jspark_session = spark_session._jsparkSession
+            self._context = self._get_spark_context(self._gateway, self._jspark_session)
+            self._dbtype = 'spark'
 
     def close(self):
         self._context.close()
         self._gateway.close()
+
+    @classmethod
+    def new_spark_context(cls, spark):
+        ins = cls(None, spark_session=spark)
+        created_verdict_contexts.append(ins)
+        return ins
 
     @classmethod
     def new_mysql_context(cls, host, user, password=None, port=3306):
@@ -88,6 +147,9 @@ class VerdictContext:
 
     def set_loglevel(self, level):
         self._context.setLoglevel(level)
+
+    def set_log_level(self, level):
+        self.set_loglevel(level)
 
     def sql(self, query):
         return self.sql_raw_result(query).to_df()
@@ -191,3 +253,6 @@ class VerdictContext:
 
     def _get_context(self, gateway, url):
         return gateway.jvm.org.verdictdb.VerdictContext.fromConnectionString(url)
+
+    def _get_spark_context(self, gateway, jspark_session):
+        return gateway.jvm.org.verdictdb.VerdictContext.fromSparkSession(jspark_session)
