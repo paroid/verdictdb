@@ -89,6 +89,8 @@ class SingleResultSet:
             return cls._read_value_mysql(resultset, index, col_type)
         elif dbtype == 'presto':
             return cls._read_value_presto(resultset, index, col_type)
+        elif dbtype == 'spark':
+            return cls._read_value_spark(resultset, index, col_type)
         else:
             raise NotImplementedError
 
@@ -115,7 +117,6 @@ class SingleResultSet:
             value_str = resultset.getString(index)
             if value_str is None:
                 return None
-
             if col_type == 'decimal':
                 return float(value_str)
             elif col_type == 'date':
@@ -124,6 +125,40 @@ class SingleResultSet:
                 return value_str[:17] + '%06.3f'%float(value_str[18:])
             else:
                 return None     # not supposed to reach here
+
+        return resultset.getValue(index)
+
+    @classmethod
+    def _read_value_spark(cls, resultset, index, col_type):
+        """
+        Type conversion rule (PySpark):
+        'tinyint'   => int
+        'boolean'   => bool
+        'smallint'  => int
+        'int'       => int
+        'bigint'    => bigint
+        'float'     => float
+        'double'    => double
+        'timestamp' => datatime
+        'string'    => str
+        """
+        type_to_read_in_str_for_spark = set(['timestamp'])
+
+        if col_type in type_to_read_in_str_for_spark:
+            value_str = resultset.getString(index)
+            print(value_str)
+            if value_str is None:
+                return None
+            if col_type == 'timestamp':
+                if len(value_str) == 19:    # 19 == len('2018-12-31 00:00:01')
+                    return datetime.strptime(value_str, "%Y-%m-%d %H:%M:%S")
+                elif len(value_str) > 19:
+                    return datetime.strptime(value_str, "%Y-%m-%d %H:%M:%S.%f")
+                else:
+                    raise ValueError(
+                        'The following timestamp value does not follow'
+                        'the standard format: '
+                        + value_str)
 
         return resultset.getValue(index)
 

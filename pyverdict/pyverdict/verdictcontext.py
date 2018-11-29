@@ -105,14 +105,16 @@ class VerdictContext:
             self._dbtype = self._get_dbtype(url)
             self._url = url
         if spark_session is not None:
-            assert str(type(spark)) == "<class 'pyspark.sql.session.SparkSession'>"
+            assert str(type(spark_session)) \
+                == "<class 'pyspark.sql.session.SparkSession'>"
             self._spark_session = spark_session
             self._jspark_session = spark_session._jsparkSession
             self._spark_context = spark_session._sc
             self._gateway = self._get_pyspark_gateway(spark_session)
-            self._load_verdict_classes_into_jvm()
-            self._context = self._get_spark_context(self._gateway, self._jspark_session)
+            self._context = self._load_or_get_spark_context(
+                                self._gateway, self._jspark_session)
             self._dbtype = 'spark'
+        self.version = self._get_verdictdb_version()
 
     def close(self):
         self._context.close()
@@ -177,8 +179,10 @@ class VerdictContext:
         else:
             elapsed_min = elapsed_time // 60
             elapsed_sec = elapsed_time % 60
-            elapsed_time_str = "{0} mins {1:.3f} seconds".format(elapsed_min, elapsed_sec)
-        print("{} row(s) in the result ({})".format(len(result_set.rows()), elapsed_time_str))
+            elapsed_time_str = "{0} mins {1:.3f} seconds".format(
+                                   elapsed_min, elapsed_sec)
+        print("{} row(s) in the result ({})".format(
+                  len(result_set.rows()), elapsed_time_str))
 
         return result_set
 
@@ -195,17 +199,36 @@ class VerdictContext:
                 f'connection information: {url}')
         return tokenized_url[1]
 
-    def _load_verdict_classes_into_jvm(self, jvm):
+    def _load_verdict_jar_into_jvm(self, gateway):
         '''
+        Follows the hacky approach describe in
+        https://stackoverflow.com/questions/7884393/can-a-directory-be-added-to-the-class-path-at-runtime
+
         Args:
             jvm: py4j's jvm instance
         '''
-        from py4j.java_gateway import java_import
-        java_import(jvm, "java.net.URLClassLoader")
-        
-        jclass_loader = self._spark_context._jsc.getClass().getClassLoader()
-        jvm.URLClassLoader(myJar.toURL(), jclass_loader)
-        pass
+        # py4j's jvm interface
+        jvm = gateway.jvm
+
+        # jar URL
+        verdict_jar_path = self._get_verdict_jar_path()
+        verdict_jar_url = jvm.java.io.File(verdict_jar_path).toURI().toURL()
+
+        # obtain the jvm's default class loader and cast it to URLClassLoader
+        system_class_loader = jvm.java.lang.ClassLoader.getSystemClassLoader()
+        url_loader_class = jvm.java.net.URLClassLoader._java_lang_class
+        url_loader = url_loader_class.cast(system_class_loader)
+
+        # get the addURL() method with reflection
+        class_arr = gateway.new_array(jvm.java.lang.Class, 1)
+        class_arr[0] = verdict_jar_url.getClass()
+        add_url_method = url_loader_class.getDeclaredMethod("addURL", class_arr)
+
+        # invoke the method
+        add_url_method.setAccessible(True)
+        url_arr = gateway.new_array(jvm.java.lang.Object, 1)
+        url_arr[0] = verdict_jar_url
+        add_url_method.invoke(url_loader, url_arr)
 
     def _get_jvm(self):
         return self._spark_context._jvm
@@ -220,10 +243,11 @@ class VerdictContext:
         """
         class_path = self._get_class_path(extra_class_path)
         gateway = JavaGateway.launch_gateway(
-            classpath=class_path, die_on_exit=True,
-            redirect_stdout=sys.stdout,
-            redirect_stderr=sys.stderr,
-            create_new_process_group=True)
+                        classpath=class_path, 
+                        die_on_exit=True,
+                        redirect_stdout=sys.stdout,
+                        redirect_stderr=sys.stderr,
+                        create_new_process_group=True)
         sleep(1)
         return gateway
 
@@ -276,5 +300,9 @@ class VerdictContext:
     def _get_context(self, gateway, url):
         return gateway.jvm.org.verdictdb.VerdictContext.fromConnectionString(url)
 
-    def _get_spark_context(self, gateway, jspark_session):
-        return gateway.jvm.org.verdictdb.VerdictContext.fromSparkSession(jspark_session)
+    def _load_or_get_spark_context(self, gateway, jspark_session):
+        if hasattr(self, '_context'):
+            return self._context
+        self._load_verdict_jar_into_jvm(gateway)
+        verdict_context_class = gateway.jvm.org.verdictdb.VerdictContext
+        return verdict_context_class.fromSparkSession(jspark_session)

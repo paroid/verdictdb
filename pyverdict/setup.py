@@ -67,7 +67,11 @@ json.dump(
 metadata_file.close()
 
 
-# the standard setup script
+# The standard setup script
+# Note on dependencies: 
+#   pyverdict's tests rely on extra packages:
+#   - pyspark
+#   - pytest
 setuptools.setup(
     name='pyverdict',
     version=pyverdict_version,
