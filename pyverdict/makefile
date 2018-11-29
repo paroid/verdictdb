@@ -2,7 +2,8 @@
 clean:
 	rm -rf __pycache__ build dist pyverdict.egg-info *.log \
 	pyverdict/verdict_jar .pytest_cache pyverdict/__pycache__ \
-	tests/__pycache__ pyverdict/metadata.json
+	tests/__pycache__ pyverdict/metadata.json \
+	spark-warehouse metastore_db
 
 develop:
 	python setup.py develop

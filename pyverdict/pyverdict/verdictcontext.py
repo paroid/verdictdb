@@ -195,7 +195,7 @@ class VerdictContext:
             raise VerdictException('The url must start with \'jdbc\'')
         if len(tokenized_url) < 2:
             raise VerdictException(
-                'This url does not seem to have valid ' \
+                'This url does not seem to have valid '
                 f'connection information: {url}')
         return tokenized_url[1]
 
