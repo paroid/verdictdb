@@ -98,15 +98,19 @@ class VerdictContext:
         spark_session: an instance of pyspark.sql.session
     """
 
-    def __init__(self, url, extra_class_path=None, spark_session=None):
-        self._gateway = self._get_gateway(extra_class_path)
+    def __init__(self, url=None, extra_class_path=None, spark_session=None):
         if url is not None:
+            self._gateway = self._get_gateway(extra_class_path)
             self._context = self._get_context(self._gateway, url)
             self._dbtype = self._get_dbtype(url)
             self._url = url
         if spark_session is not None:
+            assert str(type(spark)) == "<class 'pyspark.sql.session.SparkSession'>"
             self._spark_session = spark_session
             self._jspark_session = spark_session._jsparkSession
+            self._spark_context = spark_session._sc
+            self._gateway = self._get_pyspark_gateway(spark_session)
+            self._load_verdict_classes_into_jvm()
             self._context = self._get_spark_context(self._gateway, self._jspark_session)
             self._dbtype = 'spark'
 
@@ -116,7 +120,7 @@ class VerdictContext:
 
     @classmethod
     def new_spark_context(cls, spark):
-        ins = cls(None, spark_session=spark)
+        ins = cls(spark_session=spark)
         created_verdict_contexts.append(ins)
         return ins
 
@@ -191,6 +195,21 @@ class VerdictContext:
                 f'connection information: {url}')
         return tokenized_url[1]
 
+    def _load_verdict_classes_into_jvm(self, jvm):
+        '''
+        Args:
+            jvm: py4j's jvm instance
+        '''
+        from py4j.java_gateway import java_import
+        java_import(jvm, "java.net.URLClassLoader")
+        
+        jclass_loader = self._spark_context._jsc.getClass().getClassLoader()
+        jvm.URLClassLoader(myJar.toURL(), jclass_loader)
+        pass
+
+    def _get_jvm(self):
+        return self._spark_context._jvm
+
     def _get_gateway(self, extra_class_path):
         """
         Initializes a py4j gateway.
@@ -207,6 +226,9 @@ class VerdictContext:
             create_new_process_group=True)
         sleep(1)
         return gateway
+
+    def _get_pyspark_gateway(self, spark_session):
+        return spark_session._sc._gateway
 
     def _get_class_path(self, extra_class_path):
         """
