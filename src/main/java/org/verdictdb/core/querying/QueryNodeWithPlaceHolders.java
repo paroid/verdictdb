@@ -143,6 +143,12 @@ public abstract class QueryNodeWithPlaceHolders extends QueryNodeBase {
       for (AbstractRelation joinSource : ((JoinTable) source).getJoinList()) {
         findPlaceHolderAndReplaceInSource(joinSource, placeholderTable, actualTable);
       }
+    } else if (source instanceof SetOperationRelation) {
+      SetOperationRelation unionQuery = (SetOperationRelation) source;
+      AbstractRelation leftSource = unionQuery.getLeft();
+      AbstractRelation rightSource = unionQuery.getRight();
+      findPlaceHolderAndReplaceInSource(leftSource, placeholderTable, actualTable);
+      findPlaceHolderAndReplaceInSource(rightSource, placeholderTable, actualTable);
     } else if (source instanceof SelectQuery) {
       SelectQuery subquery = (SelectQuery) source;
   
@@ -156,12 +162,6 @@ public abstract class QueryNodeWithPlaceHolders extends QueryNodeBase {
         UnnamedColumn subfilter = subquery.getFilter().get();
         findPlaceHolderAndReplaceInFilter(subfilter, placeholderTable, actualTable);
       }
-    } else if (source instanceof SetOperationRelation) {
-      SetOperationRelation unionQuery = (SetOperationRelation) source;
-      AbstractRelation leftSource = unionQuery.getLeft();
-      AbstractRelation rightSource = unionQuery.getRight();
-      findPlaceHolderAndReplaceInSource(leftSource, placeholderTable, actualTable);
-      findPlaceHolderAndReplaceInSource(rightSource, placeholderTable, actualTable);
     }
   }
   

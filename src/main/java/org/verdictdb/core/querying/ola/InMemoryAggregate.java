@@ -219,7 +219,7 @@ public class InMemoryAggregate {
           SelectQuery.create(new AsteriskColumn(), new BaseTable("PUBLIC", combinedTableName));
       AbstractRelation setOperation =
           new SetOperationRelation(left, right, SetOperationRelation.SetOpType.unionAll);
-
+      setOperation.setAliasName("unionTable");
       copy.clearFilter();
       copy.setFromList(Arrays.asList(setOperation));
       copy.clearGroupby();
