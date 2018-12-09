@@ -496,7 +496,7 @@ public class RelationStandardizer {
     
     // Select
     List<SelectItem> selectItemList;
-    if (fromList.get(0) instanceof SetOperationRelation) {
+    if (!fromList.isEmpty() && fromList.get(0) instanceof SetOperationRelation) {
       for (String colName:colNameAndTableAlias.keySet()) {
         colNameAndTableAlias.put(colName, fromList.get(0).getAliasName().get());
       }
