@@ -17,21 +17,10 @@
 package org.verdictdb.sqlreader;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
-import org.verdictdb.core.sqlobject.AbstractRelation;
-import org.verdictdb.core.sqlobject.AliasedColumn;
-import org.verdictdb.core.sqlobject.AsteriskColumn;
-import org.verdictdb.core.sqlobject.BaseColumn;
-import org.verdictdb.core.sqlobject.BaseTable;
-import org.verdictdb.core.sqlobject.ColumnOp;
-import org.verdictdb.core.sqlobject.ConstantColumn;
-import org.verdictdb.core.sqlobject.GroupingAttribute;
-import org.verdictdb.core.sqlobject.JoinTable;
-import org.verdictdb.core.sqlobject.OrderbyAttribute;
-import org.verdictdb.core.sqlobject.SelectItem;
-import org.verdictdb.core.sqlobject.SelectQuery;
-import org.verdictdb.core.sqlobject.UnnamedColumn;
+import org.verdictdb.core.sqlobject.*;
 import org.verdictdb.parser.VerdictSQLParser;
 import org.verdictdb.parser.VerdictSQLParserBaseVisitor;
 
@@ -45,12 +34,13 @@ public class RelationGen extends VerdictSQLParserBaseVisitor<AbstractRelation> {
   //    this.meta = meta;
   //  }
 
-  public RelationGen() {}
+  public RelationGen() {
+  }
 
   @Override
   public SelectQuery visitSelect_statement(VerdictSQLParser.Select_statementContext ctx) {
-    SelectQuery sel = (SelectQuery) visit(ctx.query_expression());
-
+    AbstractRelation r = visit(ctx.query_expression());
+    SelectQuery sel = (SelectQuery) r;
     if (ctx.order_by_clause() != null) {
       for (VerdictSQLParser.Order_by_expressionContext o :
           ctx.order_by_clause().order_by_expression()) {
@@ -80,26 +70,31 @@ public class RelationGen extends VerdictSQLParserBaseVisitor<AbstractRelation> {
     } else if (ctx.query_expression() != null) {
       r = this.visit(ctx.query_expression());
     }
-    /*
-       for (VerdictSQLParser.UnionContext union : ctx.union()) {
-           AbstractRelation other = this.visit(union);
-           SetRelation.SetType type;
-           if (union.UNION() != null) {
-               type = SetRelation.SetType.UNION;
-               if (union.ALL() != null) {
-                   type = SetRelation.SetType.UNION_ALL;
-               }
-           } else if (union.EXCEPT() != null) {
-               type = SetRelation.SetType.EXCEPT;
-           } else if (union.INTERSECT() != null) {
-               type = SetRelation.SetType.INTERSECT;
-           } else {
-               type = SetRelation.SetType.UNKNOWN;
-           }
-           r = new SetRelation(vc, r, other, type);
-       }
-    */
+
+    for (VerdictSQLParser.UnionContext union : ctx.union()) {
+      AbstractRelation other = this.visit(union);
+      SetOperationRelation.SetOpType type;
+      if (union.UNION() != null) {
+        type = SetOperationRelation.SetOpType.union;
+        if (union.ALL() != null) {
+          type = SetOperationRelation.SetOpType.unionAll;
+        }
+      } else if (union.EXCEPT() != null) {
+        type =SetOperationRelation.SetOpType.except;
+      } else if (union.INTERSECT() != null) {
+        type = SetOperationRelation.SetOpType.intersect;
+      } else {
+        type = SetOperationRelation.SetOpType.unknown;
+      }
+      r = new SetOperationRelation(r, other, type);
+    }
+
     return r;
+  }
+
+  @Override
+  public AbstractRelation visitUnion(VerdictSQLParser.UnionContext ctx) {
+    return visit(ctx.query_expression(0));
   }
 
   /**
@@ -243,7 +238,7 @@ public class RelationGen extends VerdictSQLParserBaseVisitor<AbstractRelation> {
       if (ctx.search_condition() == null) {
         throw new RuntimeException("The join condition for a inner join does not exist.");
       }
-      
+
       AbstractRelation r = this.visit(ctx.table_source());
       CondGen g = new CondGen();
       UnnamedColumn cond = g.visit(ctx.search_condition());

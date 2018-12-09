@@ -559,15 +559,14 @@ public class SelectQueryToSql {
       return sql.toString();
     }
     if (relation instanceof SetOperationRelation) {
-      sql.append("(");
-      sql.append(selectQueryToSql((SelectQuery) ((SetOperationRelation) relation).getLeft()));
-      sql.append(" ");
-      sql.append(((SetOperationRelation) relation).getSetOpType());
-      sql.append(" ");
-      sql.append(selectQueryToSql((SelectQuery) ((SetOperationRelation) relation).getRight()));
-      sql.append(")");
+      SetOperationToSql setOperationToSql = new SetOperationToSql(syntax);
       if (relation.getAliasName().isPresent()) {
+        sql.append("(");
+        sql.append(setOperationToSql.toSql(relation));
+        sql.append(")");
         sql.append(" as " + relation.getAliasName().get());
+      } else {
+        sql.append(setOperationToSql.toSql(relation));
       }
       return sql.toString();
     }
@@ -580,9 +579,8 @@ public class SelectQueryToSql {
     SelectQuery sel = (SelectQuery) relation;
     Optional<String> aliasName = sel.getAliasName();
     if (!aliasName.isPresent()) {
-      throw new VerdictDBValueException("An inner select query must be aliased.");
+      return selectQueryToSql(sel);
     }
-
     return "(" + selectQueryToSql(sel) + ") as " + aliasName.get();
   }
 

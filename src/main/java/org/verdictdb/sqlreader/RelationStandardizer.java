@@ -25,21 +25,7 @@ import java.util.Vector;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.verdictdb.connection.MetaDataProvider;
-import org.verdictdb.core.sqlobject.AbstractRelation;
-import org.verdictdb.core.sqlobject.AliasReference;
-import org.verdictdb.core.sqlobject.AliasedColumn;
-import org.verdictdb.core.sqlobject.AsteriskColumn;
-import org.verdictdb.core.sqlobject.BaseColumn;
-import org.verdictdb.core.sqlobject.BaseTable;
-import org.verdictdb.core.sqlobject.ColumnOp;
-import org.verdictdb.core.sqlobject.ConstantColumn;
-import org.verdictdb.core.sqlobject.GroupingAttribute;
-import org.verdictdb.core.sqlobject.JoinTable;
-import org.verdictdb.core.sqlobject.OrderbyAttribute;
-import org.verdictdb.core.sqlobject.SelectItem;
-import org.verdictdb.core.sqlobject.SelectQuery;
-import org.verdictdb.core.sqlobject.SubqueryColumn;
-import org.verdictdb.core.sqlobject.UnnamedColumn;
+import org.verdictdb.core.sqlobject.*;
 import org.verdictdb.exception.VerdictDBDbmsException;
 import org.verdictdb.exception.VerdictDBException;
 import org.verdictdb.sqlsyntax.H2Syntax;
@@ -403,7 +389,7 @@ public class RelationStandardizer {
   private Pair<List<String>, AbstractRelation> setupTableSource(AbstractRelation table)
       throws VerdictDBDbmsException {
     // in order to prevent informal table alias, we replace all table alias
-    if (!(table instanceof JoinTable)) {
+    if (!(table instanceof JoinTable) && !(table instanceof SetOperationRelation)) {
       if (table.getAliasName().isPresent()) {
         String alias = table.getAliasName().get();
         alias = alias.replace("`", "");
@@ -445,7 +431,7 @@ public class RelationStandardizer {
       }
       return new ImmutablePair<>(joinColName, table);
       
-    } else if (table instanceof SelectQuery) {
+    } else if (table instanceof SelectQuery && !(table instanceof SetOperationRelation)) {
       List<String> colName = new ArrayList<>();
       RelationStandardizer g = new RelationStandardizer(meta, syntax);
       g.oldTableAliasMap.putAll(oldTableAliasMap);
@@ -484,6 +470,10 @@ public class RelationStandardizer {
         }
       }
       return new ImmutablePair<>(colName, table);
+    } else if (table instanceof SetOperationRelation) {
+      setupTableSource(((SetOperationRelation) table).getLeft());
+      Pair<List<String>, AbstractRelation> pair = setupTableSource(((SetOperationRelation) table).getRight());
+      return new ImmutablePair<>(pair.getKey(), table);
     }
     return null;
   }
@@ -505,7 +495,17 @@ public class RelationStandardizer {
     List<AbstractRelation> fromList = setupTableSources(relationToAlias);
     
     // Select
-    List<SelectItem> selectItemList = replaceSelectList(relationToAlias.getSelectList());
+    List<SelectItem> selectItemList;
+    if (fromList.get(0) instanceof SetOperationRelation) {
+      for (String colName:colNameAndTableAlias.keySet()) {
+        colNameAndTableAlias.put(colName, fromList.get(0).getAliasName().get());
+      }
+      for (SelectQuery sel:((SetOperationRelation) fromList.get(0)).getSelectQueryList()) {
+        sel.clearAliasName();
+      }
+    }
+    selectItemList = replaceSelectList(relationToAlias.getSelectList());
+
     SelectQuery AliasedRelation = SelectQuery.create(selectItemList, fromList);
 
     // Filter

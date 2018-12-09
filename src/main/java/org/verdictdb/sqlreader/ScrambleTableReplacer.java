@@ -17,17 +17,14 @@
 package org.verdictdb.sqlreader;
 
 import java.util.List;
+import java.util.Set;
 
 import org.apache.commons.lang3.tuple.Triple;
 import org.verdictdb.commons.VerdictDBLogger;
 import org.verdictdb.coordinator.SelectQueryCoordinator;
 import org.verdictdb.core.scrambling.ScrambleMeta;
 import org.verdictdb.core.scrambling.ScrambleMetaSet;
-import org.verdictdb.core.sqlobject.AbstractRelation;
-import org.verdictdb.core.sqlobject.BaseColumn;
-import org.verdictdb.core.sqlobject.BaseTable;
-import org.verdictdb.core.sqlobject.JoinTable;
-import org.verdictdb.core.sqlobject.SelectQuery;
+import org.verdictdb.core.sqlobject.*;
 import org.verdictdb.exception.VerdictDBValueException;
 
 /** Created by Dong Young Yoon on 7/31/18. */
@@ -118,6 +115,11 @@ public class ScrambleTableReplacer {
           }
         } else if (rel instanceof SelectQuery) {
           replaceQuery((SelectQuery) rel, false, null);
+        } else if (rel instanceof SetOperationRelation) {
+          List<SelectQuery> selectQueryList = ((SetOperationRelation) rel).getSelectQueryList();
+          for (SelectQuery subquery:selectQueryList) {
+            replaceQuery(subquery, false, inspectionInfo);
+          }
         }
       }
     }
@@ -137,7 +139,7 @@ public class ScrambleTableReplacer {
       AbstractRelation table, 
       Triple<Boolean, Boolean, BaseColumn> inspectionInfo) throws VerdictDBValueException {
     
-    BaseColumn countDistinctColumn = inspectionInfo.getRight();
+     BaseColumn countDistinctColumn = inspectionInfo.getRight();
     
     if (table instanceof BaseTable) {
       BaseTable bt = (BaseTable) table;
@@ -173,9 +175,14 @@ public class ScrambleTableReplacer {
       for (AbstractRelation relation : jt.getJoinList()) {
         this.replaceTableForCountDistinct(relation, inspectionInfo);
       }
-    } else if (table instanceof SelectQuery) {
+    } else if (table instanceof SelectQuery && !(table instanceof SetOperationRelation)) {
       SelectQuery subquery = (SelectQuery) table;
       this.replaceQuery(subquery, false, inspectionInfo);
+    } else if (table instanceof SetOperationRelation) {
+      List<SelectQuery> selectQueryList = ((SetOperationRelation) table).getSelectQueryList();
+      for (SelectQuery subquery:selectQueryList) {
+        this.replaceQuery(subquery, false, inspectionInfo);
+      }
     }
     
     return table;
@@ -216,11 +223,15 @@ public class ScrambleTableReplacer {
       for (AbstractRelation relation : jt.getJoinList()) {
         this.replaceTableForSimpleAggregates(relation, inspectionInfo);
       }
-    } else if (table instanceof SelectQuery) {
+    } else if (table instanceof SelectQuery && !(table instanceof SetOperationRelation)) {
       SelectQuery subquery = (SelectQuery) table;
       this.replaceQuery(subquery, false, inspectionInfo);
+    } else if (table instanceof SetOperationRelation) {
+      List<SelectQuery> selectQueryList = ((SetOperationRelation) table).getSelectQueryList();
+      for (SelectQuery subquery:selectQueryList) {
+        this.replaceQuery(subquery, false, inspectionInfo);
+      }
     }
-
     return table;
   }
 }

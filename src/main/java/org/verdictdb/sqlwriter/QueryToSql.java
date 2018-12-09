@@ -35,7 +35,7 @@ public class QueryToSql {
       throw new VerdictDBValueException("null value passed");
     }
 
-    if (query instanceof SelectQuery) {
+    if (query instanceof SelectQuery && !(query instanceof SetOperationRelation)) {
       SelectQueryToSql tosql = new SelectQueryToSql(syntax);
       return tosql.toSql((SelectQuery) query);
     } else if (query instanceof CreateSchemaQuery) {
