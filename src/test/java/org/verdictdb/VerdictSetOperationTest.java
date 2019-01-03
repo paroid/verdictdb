@@ -53,7 +53,7 @@ public class VerdictSetOperationTest {
 
   private static final String MYSQL_UESR = "root";
 
-  private static final String MYSQL_PASSWORD = "";
+  private static final String MYSQL_PASSWORD = "zhongshucheng123";
 
   @BeforeClass
   public static void setupMySqlDatabase() throws SQLException, VerdictDBException {
@@ -117,7 +117,7 @@ public class VerdictSetOperationTest {
     }
   }
 
-  @Test
+  //@Test
   public void testUnionALL() throws VerdictDBException {
     String sql = String.format(
         "select count(o_orderkey) from " +
@@ -144,7 +144,7 @@ public class VerdictSetOperationTest {
     }
   }
 
-  @Test
+  //@Test
   public void testUnionThree() throws VerdictDBException {
     String sql = String.format(
         "select count(o_orderkey) from " +

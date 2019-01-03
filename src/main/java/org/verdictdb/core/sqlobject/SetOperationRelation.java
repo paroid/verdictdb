@@ -42,7 +42,7 @@ public class SetOperationRelation extends SelectQuery {
   // For instance, query0 UNION query1 and query1 contain table vt1, then ("vt1", 0) is recorded.
   HashMap<AbstractRelation, Integer> tableQueryIndexMap = new HashMap<>();
 
-  List<SelectQuery> selectQueryList;
+  private List<SelectQuery> selectQueryList;
 
   public SetOperationRelation(AbstractRelation left, AbstractRelation right, SetOpType setOpType) {
     this.left = left;
