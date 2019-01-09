@@ -23,6 +23,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
 public class VerdictSetOperationTest {
   // lineitem has 10 blocks, orders has 3 blocks;
@@ -53,7 +54,7 @@ public class VerdictSetOperationTest {
 
   private static final String MYSQL_UESR = "root";
 
-  private static final String MYSQL_PASSWORD = "zhongshucheng123";
+  private static final String MYSQL_PASSWORD = "";
 
   @BeforeClass
   public static void setupMySqlDatabase() throws SQLException, VerdictDBException {
@@ -107,17 +108,19 @@ public class VerdictSetOperationTest {
     VerdictResultStream stream = new VerdictResultStreamFromExecutionResultReader(reader);
 
     try {
-      while (stream.hasNext()) {
+      for (int i=0;i<3;i++) {
         VerdictSingleResult rs = stream.next();
         rs.next();
-        assertEquals(258, rs.getInt(0));
+        if (i==2) {
+          assertEquals(258, rs.getInt(0));
+        }
       }
     } catch (RuntimeException e) {
       throw e;
     }
   }
 
-  //@Test
+  @Test
   public void testUnionALL() throws VerdictDBException {
     String sql = String.format(
         "select count(o_orderkey) from " +
@@ -134,21 +137,25 @@ public class VerdictSetOperationTest {
     VerdictResultStream stream = new VerdictResultStreamFromExecutionResultReader(reader);
 
     try {
-      while (stream.hasNext()) {
+      for (int i=0;i<3;i++) {
         VerdictSingleResult rs = stream.next();
         rs.next();
-        assertEquals(516, rs.getInt(0));
+        if (i==2) {
+          assertEquals(516, rs.getInt(0));
+        }
       }
     } catch (RuntimeException e) {
       throw e;
     }
   }
 
-  //@Test
+  @Test
   public void testUnionThree() throws VerdictDBException {
     String sql = String.format(
         "select count(o_orderkey) from " +
-            "((select o_orderkey from %s.orders) UNION (select o_orderkey from %s.orders) UNION (select l_orderkey from %s.lineitem)) as t",
+            "((select o_orderkey from %s.orders where MOD(o_orderkey, 5) = 0) " +
+            "UNION (select o_orderkey from %s.orders where MOD(o_orderkey, 5) = 1) " +
+            "UNION (select o_orderkey from %s.orders where MOD(o_orderkey, 5) = 2)) as t",
         MYSQL_DATABASE, MYSQL_DATABASE, MYSQL_DATABASE);
     JdbcConnection jdbcConn = new JdbcConnection(conn, new MysqlSyntax());
     jdbcConn.setOutputDebugMessage(true);
@@ -161,11 +168,46 @@ public class VerdictSetOperationTest {
     VerdictResultStream stream = new VerdictResultStreamFromExecutionResultReader(reader);
 
     try {
-      while (stream.hasNext()) {
+      for (int i=0;i<3;i++) {
         VerdictSingleResult rs = stream.next();
         rs.next();
-        assertEquals(258, rs.getInt(0));
+        if (i==2) {
+          assertEquals(157, rs.getInt(0));
+        }
       }
+    } catch (RuntimeException e) {
+      throw e;
+    }
+  }
+
+
+  /**
+   * Test cases when two scramble tables have different probability distribution,
+   * VerdictDB will not handle this situation and will execute query without scrambling.
+   * @throws VerdictDBException
+   */
+  @Test
+  public void testDifferentProbDistribution() throws VerdictDBException {
+    String sql = String.format(
+        "select count(orderkey) from " +
+            "((select o_orderkey as orderkey from %s.orders) " +
+            "UNION (select l_orderkey as orderkey from %s.lineitem)) as t",
+        MYSQL_DATABASE, MYSQL_DATABASE, MYSQL_DATABASE);
+    JdbcConnection jdbcConn = new JdbcConnection(conn, new MysqlSyntax());
+    jdbcConn.setOutputDebugMessage(true);
+    DbmsConnection dbmsconn = new CachedDbmsConnection(jdbcConn);
+    dbmsconn.setDefaultSchema(MYSQL_DATABASE);
+    SelectQueryCoordinator coordinator = new SelectQueryCoordinator(dbmsconn);
+
+    coordinator.setScrambleMetaSet(meta);
+    ExecutionResultReader reader = coordinator.process(sql);
+    VerdictResultStream stream = new VerdictResultStreamFromExecutionResultReader(reader);
+
+    try {
+      VerdictSingleResult rs = stream.next();
+      assertFalse(stream.hasNext());
+      rs.next();
+      assertEquals(258, rs.getInt(0));
     } catch (RuntimeException e) {
       throw e;
     }

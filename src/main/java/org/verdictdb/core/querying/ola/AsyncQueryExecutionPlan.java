@@ -108,6 +108,9 @@ public class AsyncQueryExecutionPlan extends QueryExecutionPlan {
       ExecutableNodeBase newNode;
       if (containSetOperation) {
         newNode = convertToProgressiveAggForSetOperation(scrambleMeta, nodeBlock);
+        if (newNode==null) {
+          continue;
+        }
       } else {
         newNode = convertToProgressiveAgg(scrambleMeta, nodeBlock);
       }
@@ -286,6 +289,18 @@ public class AsyncQueryExecutionPlan extends QueryExecutionPlan {
   }
 
 
+  /**
+   * Converts the root node and its descendants into the configuration that enables progressive
+   * aggregation for aggregate block containing set operation
+   *
+   *
+   * @param scrambleMeta The metadata about the scrambled tables.
+   * @param aggNodeBlock A set of the links to the nodes that will be processed in the asynchronous
+   *                     manner.
+   * @return Returns The root of the multiple aggregation nodes (each of which involves different
+   * combinations of partitions)
+   * @throws VerdictDBValueException
+   */
   public ExecutableNodeBase convertToProgressiveAggForSetOperation(
       ScrambleMetaSet scrambleMeta, AggExecutionNodeBlock aggNodeBlock)
       throws VerdictDBValueException {
@@ -298,6 +313,9 @@ public class AsyncQueryExecutionPlan extends QueryExecutionPlan {
     // filtering predicates that must inserted into different scrambled tables are identified.
     List<List<Pair<ExecutableNodeBase, Triple<String, String, String>>>> scrambledNodes =
         identifyScrambledNodesInSetOperation(scrambleMeta, blockNodes);
+    if (scrambledNodes.size()==0) {
+      return null;
+    }
 
     List<List<Pair<String, String>>> scramblesList = new ArrayList<>();
     for (List<Pair<ExecutableNodeBase, Triple<String, String, String>>> list : scrambledNodes) {
@@ -344,7 +362,9 @@ public class AsyncQueryExecutionPlan extends QueryExecutionPlan {
       // Add extra predicates to restrain each aggregation to particular parts of base tables.
       List<List<Pair<ExecutableNodeBase, Triple<String, String, String>>>> scrambledNodeAndTableName =
           identifyScrambledNodesInSetOperation(scrambleMeta, copy.getNodesInBlock());
-      List<HyperTableCube> cubesList = new ArrayList<>();
+
+      // Assign hyper table cube to the block
+      aggroot.getAggMeta().setCubes(Arrays.asList(aggPlanList.get(0).cubes.get(i)));
 
       // Set up tier columns for set operation.
       resetTierColumnAliasGeneration();
@@ -352,7 +372,6 @@ public class AsyncQueryExecutionPlan extends QueryExecutionPlan {
 
       for (int queryIdx = 0; queryIdx < aggPlanList.size(); queryIdx++) {
         OlaAggregationPlan aggPlan = aggPlanList.get(queryIdx);
-        cubesList.add(aggPlan.cubes.get(i));
         // Insert predicates into individual aggregation nodes
         for (Pair<ExecutableNodeBase, Triple<String, String, String>> a
             : scrambledNodeAndTableName.get(queryIdx)) {
@@ -386,9 +405,6 @@ public class AsyncQueryExecutionPlan extends QueryExecutionPlan {
           }
         }
       }
-
-      // Assign hyper table cube to the block
-      aggroot.getAggMeta().setCubes(cubesList);
 
       if (isSelectAsync) {
         individualAggNodes.add(SelectAggExecutionNode.create(aggroot));
@@ -432,7 +448,7 @@ public class AsyncQueryExecutionPlan extends QueryExecutionPlan {
       subscriber.cancelSubscriptionTo(source);
     }
 
-    return null;
+    return newRoot;
   }
 
   private static List<Pair<ExecutableNodeBase, Triple<String, String, String>>> identifyScrambleNodesFromRelation(
@@ -466,6 +482,16 @@ public class AsyncQueryExecutionPlan extends QueryExecutionPlan {
     return identified;
   }
 
+
+  /**
+   * Judge whether the cumulative probability distribution of scramble tables in queries of
+   * set operation are the same.
+   *
+   * @param scrambleMeta Information about what tables have been scrambled.
+   * @param firstIdentified The scramble table info of first select query in set operation
+   * @param identifiedToDetermine The scramble table info of select query to determine
+   * @return True if the probability distributions are the same.
+   */
   private static boolean checkProbDistributionForSetOperation(
       ScrambleMetaSet scrambleMeta,
       List<Pair<ExecutableNodeBase, Triple<String, String, String>>> firstIdentified,
@@ -530,7 +556,7 @@ public class AsyncQueryExecutionPlan extends QueryExecutionPlan {
           // If not, we shouldn't treat the tables as scramble tables.
           if (identifiedQuery.size() != 0) {
             if (!checkProbDistributionForSetOperation(scrambleMeta, identifiedQuery.get(0), identifiedSingleQuery)) {
-              break;
+              return new ArrayList<>();
             }
           }
           identifiedQuery.add(identifiedSingleQuery);
@@ -699,14 +725,6 @@ public class AsyncQueryExecutionPlan extends QueryExecutionPlan {
    * @param nodeList
    * @return
    */
-  private ExecutableNodeBase rewriteSelectListOfRootAndListedDependents(
-      ExecutableNodeBase root, List<ExecutableNodeBase> nodeList) {
-    List<ExecutableNodeBase> visitList = new ArrayList<>();
-    ExecutableNodeBase rewritten =
-        rewriteSelectListOfRootAndListedDependentsInner(root, nodeList, visitList);
-    return rewritten;
-  }
-
   private ExecutableNodeBase rewriteSelectListOfRootAndListedDependentsInner(
       ExecutableNodeBase root,
       List<ExecutableNodeBase> nodeList,
@@ -752,6 +770,19 @@ public class AsyncQueryExecutionPlan extends QueryExecutionPlan {
     }
   }
 
+  /**
+   * We assume scramble tables in set operation are only single-tiered. We add the tier column
+   * in the select list.
+   * <p>
+   * 1. select avg(price) as p from a UNION select avg(price) as p from b
+   *    --------------------->
+   *    select avg(price) as p, 0 as verdictdb_set_tier from a
+   *    UNION
+   *    select avg(price) as p, 0 as verdictdb_set_tier from b
+   *    group by verdictdb_set_tier
+   *
+   * @return
+   */
   private void rewriteSetOperationForMultiTier(
       ProjectionNode node, List<BaseTable> scrambledTables, ScrambleMetaSet scrambleMeta) {
 
