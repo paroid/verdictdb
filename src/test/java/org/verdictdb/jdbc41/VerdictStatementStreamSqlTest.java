@@ -47,7 +47,7 @@ public class VerdictStatementStreamSqlTest {
 
   private static final String MYSQL_UESR = "root";
 
-  private static final String MYSQL_PASSWORD = "zhongshucheng123";
+  private static final String MYSQL_PASSWORD = "";
 
   private static Statement stmt, vstmt;
 

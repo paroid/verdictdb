@@ -34,14 +34,7 @@ import org.verdictdb.core.scrambling.ScrambleMeta;
 import org.verdictdb.core.scrambling.ScrambleMetaSet;
 import org.verdictdb.core.scrambling.ScramblingMethod;
 import org.verdictdb.core.scrambling.UniformScramblingMethod;
-import org.verdictdb.core.sqlobject.AbstractRelation;
-import org.verdictdb.core.sqlobject.BaseTable;
-import org.verdictdb.core.sqlobject.ColumnOp;
-import org.verdictdb.core.sqlobject.CreateScrambleQuery;
-import org.verdictdb.core.sqlobject.JoinTable;
-import org.verdictdb.core.sqlobject.SelectQuery;
-import org.verdictdb.core.sqlobject.SubqueryColumn;
-import org.verdictdb.core.sqlobject.UnnamedColumn;
+import org.verdictdb.core.sqlobject.*;
 import org.verdictdb.exception.VerdictDBDbmsException;
 import org.verdictdb.exception.VerdictDBException;
 import org.verdictdb.exception.VerdictDBTypeException;
@@ -676,12 +669,14 @@ public class ExecutionContext {
       queries.remove(0);
       for (AbstractRelation t : query.getFromList()) {
         if (t instanceof BaseTable) tables.add((BaseTable) t);
-        else if (t instanceof SelectQuery) queries.add((SelectQuery) t);
+        else if (t instanceof SelectQuery && !(t instanceof SetOperationRelation)) queries.add((SelectQuery) t);
         else if (t instanceof JoinTable) {
           for (AbstractRelation join : ((JoinTable) t).getJoinList()) {
             if (join instanceof BaseTable) tables.add((BaseTable) join);
             else if (join instanceof SelectQuery) queries.add((SelectQuery) join);
           }
+        } else if (t instanceof SetOperationRelation) {
+          queries.addAll(((SetOperationRelation) t).getSelectQueryList());
         }
       }
       if (query.getFilter().isPresent()) {
