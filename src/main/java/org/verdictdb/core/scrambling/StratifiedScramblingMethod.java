@@ -308,7 +308,7 @@ public class StratifiedScramblingMethod extends ScramblingMethodBase {
     String groupDistributionSchemaName = (String) metaData.get("schemaName");
     String groupDistributionTableName = (String) metaData.get("tableName");
 
-    ColumnOp joinPredicate = null;
+    UnnamedColumn joinPredicate = null;
     for (String columnName:stratifiedColumns) {
       if (joinPredicate==null) {
         joinPredicate = ColumnOp.equal(
@@ -493,13 +493,12 @@ public class StratifiedScramblingMethod extends ScramblingMethodBase {
 
       Pair<BaseTable, SubscriptionTicket> placeholder = createPlaceHolderTable(tableSourceAlias);
       BaseTable baseTable = placeholder.getLeft();
-      selectQuery =
-          SelectQuery.create(Arrays.asList(
-              new AliasedColumn(
-                  ColumnOp.avg(new BaseColumn(tableSourceAlias, GROUP_COUNT_COLUMN_ALIAS)), GROUP_SIZE_AVG_ALIAS),
-              new AliasedColumn(
-                  ColumnOp.std(new BaseColumn(tableSourceAlias, GROUP_COUNT_COLUMN_ALIAS)), GROUP_SIZE_STDDEV_ALIAS)),
-              baseTable);
+      List<SelectItem> selectItemList = new ArrayList<>();
+      selectItemList.add(new AliasedColumn(
+          ColumnOp.avg(new BaseColumn(tableSourceAlias, GROUP_COUNT_COLUMN_ALIAS)), GROUP_SIZE_AVG_ALIAS));
+      selectItemList.add(new AliasedColumn(
+          ColumnOp.std(new BaseColumn(tableSourceAlias, GROUP_COUNT_COLUMN_ALIAS)), GROUP_SIZE_STDDEV_ALIAS));
+      selectQuery = SelectQuery.create(selectItemList, baseTable);
       subscriptionTicket = placeholder.getRight();
     }
 
