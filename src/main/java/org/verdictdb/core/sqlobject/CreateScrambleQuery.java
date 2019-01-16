@@ -101,6 +101,7 @@ public class CreateScrambleQuery extends CreateTableQuery {
   public void checkIfSupported(SqlSyntax syntax) throws VerdictDBValueException {
     if (method.equalsIgnoreCase("uniform")
         || method.equalsIgnoreCase("hash")
+        || method.equalsIgnoreCase("stratified")
         || method.equalsIgnoreCase("FastConverge")) {
     } else {
       throw new VerdictDBValueException(
@@ -115,6 +116,13 @@ public class CreateScrambleQuery extends CreateTableQuery {
           "The hash column is null."
               + "If the scrambling method is hash, "
               + "hash column name must be present.");
+    }
+
+    if (method.equals("stratified") && hashColumnName == null) {
+      throw new VerdictDBValueException(
+          "The stratified column is null."
+              + "If the scrambling method is stratified, "
+              + "stratified column name must be present.");
     }
 
     if (size <= 0 || size > 1) {

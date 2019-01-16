@@ -25,13 +25,7 @@ import org.verdictdb.connection.CachedDbmsConnection;
 import org.verdictdb.connection.ConcurrentJdbcConnection;
 import org.verdictdb.connection.DbmsConnection;
 import org.verdictdb.core.execplan.ExecutablePlanRunner;
-import org.verdictdb.core.scrambling.FastConvergeScramblingMethod;
-import org.verdictdb.core.scrambling.HashScramblingMethod;
-import org.verdictdb.core.scrambling.ScrambleMeta;
-import org.verdictdb.core.scrambling.ScramblingMethod;
-import org.verdictdb.core.scrambling.ScramblingMethodBase;
-import org.verdictdb.core.scrambling.ScramblingPlan;
-import org.verdictdb.core.scrambling.UniformScramblingMethod;
+import org.verdictdb.core.scrambling.*;
 import org.verdictdb.core.sqlobject.BaseColumn;
 import org.verdictdb.core.sqlobject.BaseTable;
 import org.verdictdb.core.sqlobject.CreateSchemaQuery;
@@ -400,6 +394,10 @@ public class ScramblingCoordinator {
     } else if (methodName.equalsIgnoreCase("FastConverge") && primaryColumn != null) {
       scramblingMethodBase =
           new FastConvergeScramblingMethod(blockSize, scratchpadSchema.get(), primaryColumn);
+
+    } else if (methodName.equalsIgnoreCase("stratified") && primaryColumn != null) {
+      scramblingMethodBase = new StratifiedScramblingMethod(blockSize, scratchpadSchema.get(), primaryColumn);
+      ((StratifiedScramblingMethod) scramblingMethodBase).setStratifiedColumns(Arrays.asList(primaryColumn));
     } else {
       throw new VerdictDBValueException("Invalid scrambling method: " + methodName);
     }

@@ -83,6 +83,7 @@ scrambling_method_name
     : config_value
     | HASH
     | UNIFORM
+    | STRATIFIED
     ;
     
 //on_columns

@@ -30,7 +30,8 @@ import java.util.Map;
 @JsonSubTypes({
   @JsonSubTypes.Type(value = UniformScramblingMethod.class, name = "uniform"),
   @JsonSubTypes.Type(value = FastConvergeScramblingMethod.class, name = "fastconverge"),
-  @JsonSubTypes.Type(value = HashScramblingMethod.class, name = "hash")
+  @JsonSubTypes.Type(value = HashScramblingMethod.class, name = "hash"),
+    @JsonSubTypes.Type(value = StratifiedScramblingMethod.class, name = "stratified")
 })
 public abstract class ScramblingMethodBase implements ScramblingMethod, Serializable {
 
