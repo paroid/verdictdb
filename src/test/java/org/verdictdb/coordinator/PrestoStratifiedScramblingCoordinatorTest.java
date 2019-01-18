@@ -141,7 +141,7 @@ public class PrestoStratifiedScramblingCoordinatorTest {
             String.format("select count(*) from %s.%s where verdictdbblock=0 and verdictdbtier=0",
                 PRESTO_SCHEMA, scrambledTable));
     tierResult.next();
-    assertEquals(0.5, tierResult.getDouble(0) / blockSize, 0.1);
+    assertEquals(0.5, tierResult.getDouble(0) / blockSize, 0.15);
 
   }
 
