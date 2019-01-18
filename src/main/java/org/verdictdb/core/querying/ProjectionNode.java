@@ -28,6 +28,8 @@ public class ProjectionNode extends CreateTableAsSelectNode {
 
   private static final long serialVersionUID = 3168447303333633662L;
 
+  private List<HyperTableCube> coveredCubes = new ArrayList<>();
+
   public ProjectionNode(IdCreator namer, SelectQuery query) {
     super(namer, query);
   }
@@ -41,12 +43,20 @@ public class ProjectionNode extends CreateTableAsSelectNode {
 
   @Override
   public SqlConvertible createQuery(List<ExecutionInfoToken> tokens) throws VerdictDBException {
+    ExecutionInfoToken token = tokens.get(0);
+    if (token.containsKey("aggMeta")) {
+      coveredCubes.addAll(((AggMeta) token.getValue("aggMeta")).getCubes());
+    }
+
     return super.createQuery(tokens);
   }
 
   @Override
   public ExecutionInfoToken createToken(DbmsQueryResult result) {
-    return super.createToken(result);
+    ExecutionInfoToken token = super.createToken(result);
+    result.getMetaData().coveredCubes = coveredCubes
+
+    return token;
   }
 
   @Override

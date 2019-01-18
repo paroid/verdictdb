@@ -87,6 +87,8 @@ public class SelectQuery extends AbstractRelation implements SqlConvertible {
 
   Optional<UnnamedColumn> limit = Optional.absent();
 
+  Optional<UnnamedColumn> useOriginalAfter = Optional.absent();
+
   //  Optional<String> attribute = Optional.absent();
 
   /**
@@ -162,6 +164,10 @@ public class SelectQuery extends AbstractRelation implements SqlConvertible {
     this.limit = Optional.of(limit);
   }
 
+  public void addUseOriginalAfter(UnnamedColumn useOrigAfter) {
+    useOriginalAfter = Optional.of(useOrigAfter);
+  }
+
   public void addOrderby(List<OrderbyAttribute> columns) {
     orderby.addAll(columns);
   }
@@ -194,6 +200,10 @@ public class SelectQuery extends AbstractRelation implements SqlConvertible {
     this.selectList = new ArrayList<>();
   }
 
+  public void clearUseOriginalAfter() {
+    this.useOriginalAfter = Optional.absent();
+  }
+
   public List<SelectItem> getSelectList() {
     return selectList;
   }
@@ -220,6 +230,10 @@ public class SelectQuery extends AbstractRelation implements SqlConvertible {
 
   public List<OrderbyAttribute> getOrderby() {
     return orderby;
+  }
+
+  public Optional<UnnamedColumn> getUseOriginalAfter() {
+    return useOriginalAfter;
   }
 
   @Override
