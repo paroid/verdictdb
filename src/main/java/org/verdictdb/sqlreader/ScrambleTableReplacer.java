@@ -115,11 +115,6 @@ public class ScrambleTableReplacer {
           }
         } else if (rel instanceof SelectQuery) {
           replaceQuery((SelectQuery) rel, false, null);
-        } else if (rel instanceof SetOperationRelation) {
-          List<SelectQuery> selectQueryList = ((SetOperationRelation) rel).getSelectQueryList();
-          for (SelectQuery subquery:selectQueryList) {
-            replaceQuery(subquery, false, inspectionInfo);
-          }
         }
       }
     }
@@ -178,11 +173,15 @@ public class ScrambleTableReplacer {
     } else if (table instanceof SelectQuery && !(table instanceof SetOperationRelation)) {
       SelectQuery subquery = (SelectQuery) table;
       this.replaceQuery(subquery, false, inspectionInfo);
-    } else if (table instanceof SetOperationRelation) {
+    }
+    // disable replacement for set operation.
+    else if (table instanceof SetOperationRelation) {
+      ++replaceCount;
+      /*
       List<SelectQuery> selectQueryList = ((SetOperationRelation) table).getSelectQueryList();
       for (SelectQuery subquery:selectQueryList) {
         this.replaceQuery(subquery, false, inspectionInfo);
-      }
+      }*/
     }
     
     return table;
@@ -226,12 +225,17 @@ public class ScrambleTableReplacer {
     } else if (table instanceof SelectQuery && !(table instanceof SetOperationRelation)) {
       SelectQuery subquery = (SelectQuery) table;
       this.replaceQuery(subquery, false, inspectionInfo);
-    } else if (table instanceof SetOperationRelation) {
+    }
+    // Disable replacement for set operation.
+    else if (table instanceof SetOperationRelation) {
+      ++replaceCount;
+      /*
       List<SelectQuery> selectQueryList = ((SetOperationRelation) table).getSelectQueryList();
       for (SelectQuery subquery:selectQueryList) {
         this.replaceQuery(subquery, false, inspectionInfo);
-      }
+      }*/
     }
+
     return table;
   }
 }

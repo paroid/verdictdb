@@ -95,7 +95,7 @@ public class VerdictSetOperationTest {
   public void testUnion() throws VerdictDBException {
     String sql = String.format(
         "select count(o_orderkey) from " +
-            "((select o_orderkey from %s.orders where MOD(o_orderkey, 2) = 0) UNION ALL (select o_orderkey from %s.orders where MOD(o_orderkey, 2) = 1)) as t",
+            "((select o_orderkey from %s.orders_scrambled where MOD(o_orderkey, 2) = 0) UNION ALL (select o_orderkey from %s.orders_scrambled where MOD(o_orderkey, 2) = 1)) as t",
         MYSQL_DATABASE, MYSQL_DATABASE);
     JdbcConnection jdbcConn = new JdbcConnection(conn, new MysqlSyntax());
     jdbcConn.setOutputDebugMessage(true);
@@ -124,7 +124,7 @@ public class VerdictSetOperationTest {
   public void testUnionALL() throws VerdictDBException {
     String sql = String.format(
         "select count(o_orderkey) from " +
-            "((select o_orderkey from %s.orders) UNION ALL (select o_orderkey from %s.orders)) as t",
+            "((select o_orderkey from %s.orders_scrambled) UNION ALL (select o_orderkey from %s.orders_scrambled)) as t",
         MYSQL_DATABASE, MYSQL_DATABASE);
     JdbcConnection jdbcConn = new JdbcConnection(conn, new MysqlSyntax());
     jdbcConn.setOutputDebugMessage(true);
@@ -153,9 +153,9 @@ public class VerdictSetOperationTest {
   public void testUnionThree() throws VerdictDBException {
     String sql = String.format(
         "select count(o_orderkey) from " +
-            "((select o_orderkey from %s.orders where MOD(o_orderkey, 5) = 0) " +
-            "UNION (select o_orderkey from %s.orders where MOD(o_orderkey, 5) = 1) " +
-            "UNION (select o_orderkey from %s.orders where MOD(o_orderkey, 5) = 2)) as t",
+            "((select o_orderkey from %s.orders_scrambled where MOD(o_orderkey, 5) = 0) " +
+            "UNION (select o_orderkey from %s.orders_scrambled where MOD(o_orderkey, 5) = 1) " +
+            "UNION (select o_orderkey from %s.orders_scrambled where MOD(o_orderkey, 5) = 2)) as t",
         MYSQL_DATABASE, MYSQL_DATABASE, MYSQL_DATABASE);
     JdbcConnection jdbcConn = new JdbcConnection(conn, new MysqlSyntax());
     jdbcConn.setOutputDebugMessage(true);
@@ -190,8 +190,8 @@ public class VerdictSetOperationTest {
   public void testDifferentProbDistribution() throws VerdictDBException {
     String sql = String.format(
         "select count(orderkey) from " +
-            "((select o_orderkey as orderkey from %s.orders) " +
-            "UNION (select l_orderkey as orderkey from %s.lineitem)) as t",
+            "((select o_orderkey as orderkey from %s.orders_scrambled) " +
+            "UNION (select l_orderkey as orderkey from %s.lineitem_scrambled)) as t",
         MYSQL_DATABASE, MYSQL_DATABASE, MYSQL_DATABASE);
     JdbcConnection jdbcConn = new JdbcConnection(conn, new MysqlSyntax());
     jdbcConn.setOutputDebugMessage(true);
