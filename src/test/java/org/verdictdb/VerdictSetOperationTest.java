@@ -213,6 +213,38 @@ public class VerdictSetOperationTest {
     }
   }
 
+
+  /**
+   * Test cases when one table is scrambled and another is not,
+   * VerdictDB will not handle this situation and will execute query without scrambling.
+   * @throws VerdictDBException
+   */
+  @Test
+  public void testReplacement() throws VerdictDBException {
+    String sql = String.format(
+        "select count(o_orderkey) from " +
+            "((select o_orderkey from %s.orders_scrambled) UNION (select o_orderkey from %s.orders)) as t",
+        MYSQL_DATABASE, MYSQL_DATABASE);
+    JdbcConnection jdbcConn = new JdbcConnection(conn, new MysqlSyntax());
+    jdbcConn.setOutputDebugMessage(true);
+    DbmsConnection dbmsconn = new CachedDbmsConnection(jdbcConn);
+    dbmsconn.setDefaultSchema(MYSQL_DATABASE);
+    SelectQueryCoordinator coordinator = new SelectQueryCoordinator(dbmsconn);
+
+    coordinator.setScrambleMetaSet(meta);
+    ExecutionResultReader reader = coordinator.process(sql);
+    VerdictResultStream stream = new VerdictResultStreamFromExecutionResultReader(reader);
+
+    try {
+      VerdictSingleResult rs = stream.next();
+      assertFalse(stream.hasNext());
+      rs.next();
+      assertEquals(258, rs.getInt(0));
+    } catch (RuntimeException e) {
+      throw e;
+    }
+  }
+
   @AfterClass
   public static void tearDown() throws SQLException {
     stmt.execute(String.format("DROP SCHEMA IF EXISTS `%s`", MYSQL_DATABASE));

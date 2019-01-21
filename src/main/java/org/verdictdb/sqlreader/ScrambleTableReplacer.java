@@ -174,6 +174,11 @@ public class ScrambleTableReplacer {
     } else if (table instanceof SelectQuery && !(table instanceof SetOperationRelation)) {
       SelectQuery subquery = (SelectQuery) table;
       this.replaceQuery(subquery, false, inspectionInfo);
+    } else if (table instanceof SetOperationRelation) {
+      List<SelectQuery> selectQueryList = ((SetOperationRelation) table).getSelectQueryList();
+      for (SelectQuery sel : selectQueryList) {
+        this.replaceQuery(sel, false, inspectionInfo);
+      }
     }
 
     return table;
@@ -219,6 +224,11 @@ public class ScrambleTableReplacer {
     } else if (table instanceof SelectQuery && !(table instanceof SetOperationRelation)) {
       SelectQuery subquery = (SelectQuery) table;
       this.replaceQuery(subquery, false, inspectionInfo);
+    } else if (table instanceof SetOperationRelation) {
+      List<SelectQuery> selectQueryList = ((SetOperationRelation) table).getSelectQueryList();
+      for (SelectQuery sel:selectQueryList) {
+        this.replaceQuery(sel, false, inspectionInfo);
+      }
     }
 
     return table;
