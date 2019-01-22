@@ -112,7 +112,7 @@ public class SelectQueryCoordinator implements Coordinator {
    * The input is assumed to have been standardized.
    */
   public ExecutionResultReader process(SelectQuery selectQuery) throws VerdictDBException {
-    return process(selectQuery, null);
+    return process(selectQuery, null, false);
   }
 
   public ExecutionResultReader process(
@@ -173,7 +173,7 @@ public class SelectQueryCoordinator implements Coordinator {
     return reader;
   }
 
-  private ExecutionResultReader startOriginalQuery(SelectQuery selectQuery) {
+  private ExecutionResultReader startOriginalQuery(SelectQuery selectQuery) throws VerdictDBException {
     ExecutionInfoToken token = ExecutionInfoToken.empty();
     ExecutionTokenQueue queue = new ExecutionTokenQueue();
     token.setKeyValue("queryResult", conn.execute(selectQuery));

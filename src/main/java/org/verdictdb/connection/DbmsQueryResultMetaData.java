@@ -20,6 +20,8 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.verdictdb.core.querying.ola.HyperTableCube;
+
 public class DbmsQueryResultMetaData implements Serializable {
 
   private static final long serialVersionUID = 472824664812257672L;

@@ -163,7 +163,7 @@ public class ExecutionContext {
 
     if (queryType.equals(QueryType.select)) {
       log.debug("Query type: select");
-      return sqlSelectQuery(query, getResult);
+      return sqlSelectQuery(query, getResult, false);
     }
 
     // for other types of queries, we invalidate cached metadata for expected data
