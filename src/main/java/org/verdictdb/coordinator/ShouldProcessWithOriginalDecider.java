@@ -13,6 +13,8 @@
  *    See the License for the specific language governing permissions and
  *    limitations under the License.
  */
+package org.verdictdb.coordinator;
+
 import java.util.List;
 
 import com.google.common.base.Optional;
@@ -26,8 +28,8 @@ import org.verdictdb.core.scrambling.ScrambleMeta;
 import org.verdictdb.core.scrambling.ScrambleMetaSet;
 
 public class ShouldProcessWithOriginalDecider {
-  ScrambleMetaSet metaset;
-  float ratioToUseOriginalAfter = -1;
+  private ScrambleMetaSet metaset;
+  private float ratioToUseOriginalAfter = -1;
 
   public ShouldProcessWithOriginalDecider(SelectQuery selectQuery, ScrambleMetaSet metaset) {
     Optional<ConstantColumn> useOriginalAfter = selectQuery.getUseOriginalAfter();

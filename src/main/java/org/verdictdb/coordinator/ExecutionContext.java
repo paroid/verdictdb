@@ -397,7 +397,7 @@ public class ExecutionContext {
     }
 
     SelectQuery selectQuery = standardizeQuery(query);
-    return streamSelectQuery(selectQuery);
+    return streamSelectQuery(selectQuery, false);
   }
 
   /**
