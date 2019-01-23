@@ -184,6 +184,8 @@ public class SelectAsyncAggExecutionNode extends AsyncAggExecutionNode {
   @Override
   public ExecutionInfoToken createToken(DbmsQueryResult result) {
     ExecutionInfoToken token = super.createToken(result);
+    result.getMetaData().coveredCubes = coveredCubes;
+
     token.setKeyValue("queryResult", dbmsQueryResult);
 
     // Addition check that the query is a query contains Asterisk column that without asyncAggExecutionNode.

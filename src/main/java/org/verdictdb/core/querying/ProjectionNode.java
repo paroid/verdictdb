@@ -50,6 +50,8 @@ public class ProjectionNode extends CreateTableAsSelectNode {
       ExecutionInfoToken token = tokens.get(0);
       if (token.containsKey("aggMeta")) {
         coveredCubes.addAll(((AggMeta) token.getValue("aggMeta")).getCubes());
+      } else if (token.containsKey("coveredCubes")) {
+        coveredCubes.addAll(token.getValue("coveredCubes"));
       }
     }
 
@@ -60,9 +62,7 @@ public class ProjectionNode extends CreateTableAsSelectNode {
   public ExecutionInfoToken createToken(DbmsQueryResult result) {
     ExecutionInfoToken token = super.createToken(result);
 
-    if (result != null) {
-      result.getMetaData().coveredCubes = coveredCubes;
-    }
+    token.setKeyValue("coveredCubes", coveredCubes);
 
     return token;
   }
