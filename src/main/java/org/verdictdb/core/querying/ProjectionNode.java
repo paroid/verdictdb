@@ -57,7 +57,10 @@ public class ProjectionNode extends CreateTableAsSelectNode {
   @Override
   public ExecutionInfoToken createToken(DbmsQueryResult result) {
     ExecutionInfoToken token = super.createToken(result);
-    result.getMetaData().coveredCubes = coveredCubes;
+
+    if (result != null) {
+      result.getMetaData().coveredCubes = coveredCubes;
+    }
 
     return token;
   }
