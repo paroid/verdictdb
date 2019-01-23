@@ -46,9 +46,11 @@ public class ProjectionNode extends CreateTableAsSelectNode {
 
   @Override
   public SqlConvertible createQuery(List<ExecutionInfoToken> tokens) throws VerdictDBException {
-    ExecutionInfoToken token = tokens.get(0);
-    if (token.containsKey("aggMeta")) {
-      coveredCubes.addAll(((AggMeta) token.getValue("aggMeta")).getCubes());
+    if (!tokens.isEmpty()) {
+      ExecutionInfoToken token = tokens.get(0);
+      if (token.containsKey("aggMeta")) {
+        coveredCubes.addAll(((AggMeta) token.getValue("aggMeta")).getCubes());
+      }
     }
 
     return super.createQuery(tokens);
