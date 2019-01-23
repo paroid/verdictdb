@@ -31,7 +31,7 @@ public class ProjectionNode extends CreateTableAsSelectNode {
 
   private static final long serialVersionUID = 3168447303333633662L;
 
-  private List<HyperTableCube> coveredCubes = new ArrayList<>();
+  protected List<HyperTableCube> coveredCubes = new ArrayList<>();
 
   public ProjectionNode(IdCreator namer, SelectQuery query) {
     super(namer, query);
@@ -51,7 +51,7 @@ public class ProjectionNode extends CreateTableAsSelectNode {
       if (token.containsKey("aggMeta")) {
         coveredCubes.addAll(((AggMeta) token.getValue("aggMeta")).getCubes());
       } else if (token.containsKey("coveredCubes")) {
-        coveredCubes.addAll(token.getValue("coveredCubes"));
+        coveredCubes.addAll((List<HyperTableCube>) token.getValue("coveredCubes"));
       }
     }
 
