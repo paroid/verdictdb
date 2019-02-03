@@ -136,7 +136,7 @@ public class RedshiftStratifiedScramblingCoordinatorTest {
     ExecutionResultReader reader =
         coordinator.process(
             String.format("select count(*) from %s.%s where verdictdbblock=0 and verdictdbtier=0",
-                REDSHIFT_DATABASE, scrambledTable));
+                REDSHIFT_SCHEMA, scrambledTable));
     int count = 0;
     while (reader.hasNext()) {
       reader.next();
