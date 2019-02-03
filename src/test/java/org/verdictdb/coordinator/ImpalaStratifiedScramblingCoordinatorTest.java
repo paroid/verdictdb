@@ -6,9 +6,13 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.verdictdb.commons.DatabaseConnectionHelpers;
+import org.verdictdb.commons.VerdictOption;
 import org.verdictdb.connection.DbmsConnection;
 import org.verdictdb.connection.DbmsQueryResult;
 import org.verdictdb.connection.JdbcConnection;
+import org.verdictdb.core.resulthandler.ExecutionResultReader;
+import org.verdictdb.core.scrambling.ScrambleMeta;
+import org.verdictdb.core.scrambling.ScrambleMetaSet;
 import org.verdictdb.exception.VerdictDBDbmsException;
 import org.verdictdb.exception.VerdictDBException;
 
@@ -28,6 +32,8 @@ public class ImpalaStratifiedScramblingCoordinatorTest {
   private static Statement impalaStmt;
 
   private static final String IMPALA_HOST;
+
+  static VerdictOption options = new VerdictOption();
 
   // to avoid possible conflicts among concurrent tests
   private static final String IMPALA_DATABASE =
@@ -72,11 +78,6 @@ public class ImpalaStratifiedScramblingCoordinatorTest {
     testScramblingCoordinator("lineitem", "l_quantity");
   }
 
-  @Test
-  public void testScramblingCoordinatorOrders() throws VerdictDBException {
-    testScramblingCoordinator("lineitem", "l_discount");
-  }
-
   public void testScramblingCoordinator(String tablename, String columnname) throws VerdictDBException {
     JdbcConnection conn = JdbcConnection.create(impalaConn);
     //    conn.setOutputDebugMessage(true);
@@ -92,7 +93,7 @@ public class ImpalaStratifiedScramblingCoordinatorTest {
     String originalTable = tablename;
     String scrambledTable = tablename + "_scrambled";
     conn.execute(String.format("drop table if exists %s.%s", IMPALA_DATABASE, scrambledTable));
-    scrambler.scramble(originalSchema, originalTable, originalSchema, scrambledTable, "stratified", columnname);
+    ScrambleMeta meta = scrambler.scramble(originalSchema, originalTable, originalSchema, scrambledTable, "stratified", columnname);
 
     // tests
     List<Pair<String, String>> originalColumns = conn.getColumns(IMPALA_DATABASE, originalTable);
@@ -101,7 +102,7 @@ public class ImpalaStratifiedScramblingCoordinatorTest {
       assertEquals(originalColumns.get(i).getLeft(), columns.get(i).getLeft());
       assertEquals(originalColumns.get(i).getRight(), columns.get(i).getRight());
     }
-    assertEquals(originalColumns.size()+2, columns.size());
+    assertEquals(originalColumns.size() + 2, columns.size());
 
     List<String> partitions = conn.getPartitionColumns(IMPALA_DATABASE, scrambledTable);
     assertEquals(Arrays.asList("verdictdbblock"), partitions);
@@ -122,12 +123,20 @@ public class ImpalaStratifiedScramblingCoordinatorTest {
     assertEquals(0, result.getInt(0));
     //assertEquals((int) Math.ceil(result2.getInt(0) / (float) blockSize) - 1, result.getInt(1));
 
-    // Rare groups are large enough. Around 50% of first block should be tier0.
-    DbmsQueryResult tierResult =
-        conn.execute(
+    SelectQueryCoordinator coordinator = new SelectQueryCoordinator(conn, options);
+    ScrambleMetaSet scrambleMetas = new ScrambleMetaSet();
+    scrambleMetas.addScrambleMeta(meta);
+    coordinator.setScrambleMetaSet(scrambleMetas);
+    ExecutionResultReader reader =
+        coordinator.process(
             String.format("select count(*) from %s.%s where verdictdbblock=0 and verdictdbtier=0",
                 IMPALA_DATABASE, scrambledTable));
-    tierResult.next();
-    assertEquals(0.5, tierResult.getDouble(0) / blockSize, 0.1);
+    int count = 0;
+    while (reader.hasNext()) {
+      reader.next();
+      count++;
+    }
+    // has 11 blocks, but block0 should not return result.
+    assertEquals(10, count);
   }
 }
