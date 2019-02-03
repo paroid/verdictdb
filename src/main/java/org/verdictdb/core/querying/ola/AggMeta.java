@@ -97,7 +97,7 @@ public class AggMeta implements Serializable {
     List<TierCombination> tierCombinations = generateAllTierCombinations(metaset);
     for (TierCombination c : tierCombinations) {
       double ratio = ratioOfAllCubes(c, metaset);
-      double scalingFactor = 1.0 / ratio;
+      double scalingFactor = ratio!=0 ? 1.0 / ratio : 0;
       tierToScalingFactor.put(c, scalingFactor);
     }
     

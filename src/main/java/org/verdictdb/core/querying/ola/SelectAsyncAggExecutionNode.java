@@ -15,6 +15,7 @@ import org.verdictdb.core.querying.IdCreator;
 import org.verdictdb.core.querying.QueryNodeBase;
 import org.verdictdb.core.querying.SelectAggExecutionNode;
 import org.verdictdb.core.querying.SubscriptionTicket;
+import org.verdictdb.core.scrambling.ScrambleMeta;
 import org.verdictdb.core.scrambling.ScrambleMetaSet;
 import org.verdictdb.core.sqlobject.BaseTable;
 import org.verdictdb.core.sqlobject.ColumnOp;
@@ -82,7 +83,8 @@ public class SelectAsyncAggExecutionNode extends AsyncAggExecutionNode {
       IdCreator idCreator,
       List<ExecutableNodeBase> selectAggs,
       ScrambleMetaSet meta,
-      AggExecutionNodeBlock aggNodeBlock) {
+      AggExecutionNodeBlock aggNodeBlock,
+      boolean isStratifiedScrambling) {
     SelectAsyncAggExecutionNode node = new SelectAsyncAggExecutionNode(idCreator);
 
     // this placeholder base table is used for query construction later
@@ -128,6 +130,13 @@ public class SelectAsyncAggExecutionNode extends AsyncAggExecutionNode {
     // share same inMemoryAggregate object with selectAggExecutionNode
     for (ExecutableNodeBase source : node.getSources()) {
       ((SelectAggExecutionNode) source).setInMemoryAggregate(node.inMemoryAggregate);
+    }
+
+    // If stratified scrambling, other selectAgg nodes subscribe the first selectAgg node.
+    if (isStratifiedScrambling) {
+      for (int i=1;i<node.getSourceCount();i++) {
+        node.getSources().get(i).subscribeTo(node.getSources().get(0));
+      }
     }
     return node;
   }

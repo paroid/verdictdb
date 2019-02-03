@@ -22,16 +22,9 @@ import java.util.List;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.verdictdb.core.execplan.ExecutableNode;
-import org.verdictdb.core.querying.AggExecutionNode;
-import org.verdictdb.core.querying.CreateTableAsSelectNode;
-import org.verdictdb.core.querying.ExecutableNodeBase;
-import org.verdictdb.core.querying.PlaceHolderRecord;
-import org.verdictdb.core.querying.ProjectionNode;
-import org.verdictdb.core.querying.QueryExecutionPlan;
-import org.verdictdb.core.querying.QueryNodeBase;
-import org.verdictdb.core.querying.QueryNodeWithPlaceHolders;
-import org.verdictdb.core.querying.SelectAllExecutionNode;
+import org.verdictdb.core.querying.*;
 import org.verdictdb.core.querying.ola.AsyncAggExecutionNode;
+import org.verdictdb.core.querying.ola.SelectAsyncAggExecutionNode;
 import org.verdictdb.core.sqlobject.AbstractRelation;
 import org.verdictdb.core.sqlobject.AsteriskColumn;
 import org.verdictdb.core.sqlobject.BaseTable;
@@ -84,14 +77,15 @@ public class QueryExecutionPlanSimplifier {
       parent = candidate.getRight();
       
       // consolidates if possible
-      newParent = simplify2ParentNode(parent);
-      grandParent.replaceSource(parent, newParent);
-      
-      // add the (parent, child) as a next candidate
-      for (ExecutableNodeBase child : newParent.getSources()) {
-        parentSourceList.add(Pair.of(newParent, child));
+      if (!(grandParent instanceof SelectAsyncAggExecutionNode) && !(parent instanceof SelectAggExecutionNode)) {
+        newParent = simplify2ParentNode(parent);
+        grandParent.replaceSource(parent, newParent);
+
+        // add the (parent, child) as a next candidate
+        for (ExecutableNodeBase child : newParent.getSources()) {
+          parentSourceList.add(Pair.of(newParent, child));
+        }
       }
-      
     }
   }
   

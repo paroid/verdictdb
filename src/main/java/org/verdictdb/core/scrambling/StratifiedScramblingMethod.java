@@ -14,7 +14,6 @@ import java.util.List;
 import java.util.Map;
 
 import static org.verdictdb.core.scrambling.ScramblingNode.computeConditionalProbabilityDistribution;
-import static org.verdictdb.core.scrambling.StratifiedScramblingMethod.GroupDistributionNode.GROUP_COUNT_COLUMN_ALIAS;
 
 /**
  * Policy: 1. Tier 0: tuples containing rare groups. 2. Tier 1: other tuples
@@ -35,9 +34,11 @@ public class StratifiedScramblingMethod extends ScramblingMethodBase {
 
   private static final long serialVersionUID = 8120705615187201159L;
 
-  double p0 = 0.5; // max portion for Tier 0; should be configured dynamically in the future
+  // If at least k rows of each group should be selected, the minimumSamplingSize = k*a,
+  // where a is the uniform sampling ratio.
+  static private long minimumSamplingSize = 15;
 
-  static final double RARE_GROUP_STDDEV_MULTIPLIER = 1.0;
+  double p0 = 0.5; // max portion for Tier 0; should be configured dynamically in the future
 
   private String primaryColumnName = null;
 
@@ -50,6 +51,8 @@ public class StratifiedScramblingMethod extends ScramblingMethodBase {
   private List<String> stratifiedColumns = new ArrayList<>();
 
   private long rareGroupSize = 0; // tier 0 size
+
+  private double sampleingRatio = 0.1;
 
   public static final String MAIN_TABLE_SOURCE_ALIAS_NAME = "t1";
 
@@ -109,16 +112,6 @@ public class StratifiedScramblingMethod extends ScramblingMethodBase {
         idCreator, oldSchemaName, oldTableName, stratifiedColumns, blockSize);
     statisticsNodes.add(sg);
 
-    // Group Distribution
-    GroupDistributionNode gd = new GroupDistributionNode();
-    sg.registerSubscriber(gd.getSubscriptionTicket());
-    statisticsNodes.add(gd);
-
-    // Rare Group Size
-    RareGroupSizeNode rg = new RareGroupSizeNode();
-    rg.subscribeTo(gd);
-    statisticsNodes.add(rg);
-
     // Table Size Count Node
     TableSizeCountNode tc = new TableSizeCountNode(oldSchemaName, oldTableName);
     statisticsNodes.add(tc);
@@ -127,32 +120,24 @@ public class StratifiedScramblingMethod extends ScramblingMethodBase {
   }
 
   static UnnamedColumn createRareGroupTuplePredicate(
-      Map<String, Object> metaData, String sourceTableAlias) {
+      String sourceTableAlias) {
     boolean printLog = false;
-    return createRareGroupTuplePredicate(metaData, sourceTableAlias, printLog);
+    return createRareGroupTuplePredicate(sourceTableAlias, printLog);
   }
 
   static UnnamedColumn createRareGroupTuplePredicate(
-      Map<String, Object> metaData, String sourceTableAlias, boolean printLog) {
-    DbmsQueryResult GroupDistributionResult =
-        (DbmsQueryResult) metaData.get(GroupDistributionNode.class.getSimpleName());
-
-    GroupDistributionResult.rewind();
-    GroupDistributionResult.next(); // assumes that the original table has at least one row.
-    double groupSizeAvg = GroupDistributionResult.getDouble(0);
-    double groupSizeStddev = GroupDistributionResult.getDouble(1);
-    double lowCriteria = groupSizeAvg - groupSizeStddev * RARE_GROUP_STDDEV_MULTIPLIER;
+      String sourceTableAlias, boolean printLog) {
     if (printLog) {
       log.info(
           String.format(
-              "In stratified columns, the groups of which sizes are below %.2f"
+              "In stratified columns, the groups of which sizes are below %d"
                   + "will be prioritized in future query processing.",
-              lowCriteria));
+              minimumSamplingSize));
     }
 
     UnnamedColumn outlierPredicate = ColumnOp.less(
-        new BaseColumn(sourceTableAlias, GROUP_COUNT_COLUMN_ALIAS),
-        ConstantColumn.valueOf(lowCriteria));
+        new BaseColumn(sourceTableAlias, StratifiedGroupNode.GROUP_COUNT_COLUMN_ALIAS),
+        ConstantColumn.valueOf(minimumSamplingSize));
     return outlierPredicate;
   }
 
@@ -160,8 +145,7 @@ public class StratifiedScramblingMethod extends ScramblingMethodBase {
   public List<UnnamedColumn> getTierExpressions(Map<String, Object> metaData) {
     // Tier 0
     UnnamedColumn tier0Predicate =
-        createRareGroupTuplePredicate(
-            metaData, StratifiedScramblingMethod.GROUP_INFO_TABLE_SOURCE_ALIAS_NAME);
+        createRareGroupTuplePredicate(StratifiedScramblingMethod.GROUP_INFO_TABLE_SOURCE_ALIAS_NAME);
 
     // Tier 1: automatically handled by this function's caller
     return Arrays.asList(tier0Predicate);
@@ -191,19 +175,30 @@ public class StratifiedScramblingMethod extends ScramblingMethodBase {
     populateTier1CumulProbDist(metaData);
   }
 
+  /*
   private long calcuteEvenBlockSize(int totalNumberOfblocks, long tableSize) {
     return (long) Math.round((float) tableSize / (float) totalNumberOfblocks);
   }
+  */
 
+  /**
+   * Probability distribution for Tier1: All rare groups are put into block0.
+   *
+   * @param metaData
+   */
   private void populateTier0CumulProbDist(Map<String, Object> metaData) {
     List<Double> cumulProbDist = new ArrayList<>();
 
     // calculate the number of blocks
     Pair<Long, Integer> tableSizeAndBlockNumber = retrieveTableSizeAndBlockNumber(metaData);
-    long tableSize = tableSizeAndBlockNumber.getLeft();
     int totalNumberOfblocks = tableSizeAndBlockNumber.getRight();
-    long evenBlockSize = calcuteEvenBlockSize(totalNumberOfblocks, tableSize);
 
+    for (int i = 0; i < totalNumberOfblocks; i++) {
+      cumulProbDist.add(1.0);
+    }
+    /*
+    long tableSize = tableSizeAndBlockNumber.getLeft();
+    long evenBlockSize = calcuteEvenBlockSize(totalNumberOfblocks, tableSize);
     DbmsQueryResult rareGroupProportion =
         (DbmsQueryResult) metaData.get(RareGroupSizeNode.class.getSimpleName());
     rareGroupProportion.rewind();
@@ -241,12 +236,13 @@ public class StratifiedScramblingMethod extends ScramblingMethodBase {
         cumulProbDist.add(1.0);
       }
     }
-
+    */
     tier0CumulProbDist = cumulProbDist;
   }
 
   /**
    * Probability distribution for Tier1: the tuples that do not belong to tier0.
+   * Uniform sampling in other blocks except block 0.
    *
    * @param metaData
    */
@@ -255,8 +251,16 @@ public class StratifiedScramblingMethod extends ScramblingMethodBase {
 
     // calculate the number of blocks
     Pair<Long, Integer> tableSizeAndBlockNumber = retrieveTableSizeAndBlockNumber(metaData);
-    long tableSize = tableSizeAndBlockNumber.getLeft();
     int totalNumberOfblocks = tableSizeAndBlockNumber.getRight();
+
+    cumulProbDist.add(0.0);
+    for (int i = 1; i < totalNumberOfblocks - 1; i++) {
+      cumulProbDist.add(cumulProbDist.get(i-1)+sampleingRatio);
+    }
+    cumulProbDist.add(1.0);
+
+    /*
+    long tableSize = tableSizeAndBlockNumber.getLeft();
     long evenBlockSize = calcuteEvenBlockSize(totalNumberOfblocks, tableSize);
 
     //    System.out.println("table size: " + tableSize);
@@ -286,18 +290,19 @@ public class StratifiedScramblingMethod extends ScramblingMethodBase {
         }
       }
     }
-
+    */
     tier1CumulProbDist = cumulProbDist;
   }
 
   // Helper
+  // Block number of stratified sampling is 1 + (1 / sampling ratio). All rare groups go to block 0.
   private Pair<Long, Integer> retrieveTableSizeAndBlockNumber(Map<String, Object> metaData) {
     DbmsQueryResult tableSizeResult =
         (DbmsQueryResult) metaData.get(TableSizeCountNode.class.getSimpleName());
     tableSizeResult.rewind();
     tableSizeResult.next();
     long tableSize = tableSizeResult.getLong(TableSizeCountNode.TOTAL_COUNT_ALIAS_NAME);
-    totalNumberOfblocks = (int) Math.ceil(tableSize / (float) blockSize);
+    totalNumberOfblocks = 1 + (int) Math.ceil(1 / sampleingRatio);
     return Pair.of(tableSize, totalNumberOfblocks);
   }
 
@@ -309,8 +314,8 @@ public class StratifiedScramblingMethod extends ScramblingMethodBase {
     String groupDistributionTableName = (String) metaData.get("tableName");
 
     UnnamedColumn joinPredicate = null;
-    for (String columnName:stratifiedColumns) {
-      if (joinPredicate==null) {
+    for (String columnName : stratifiedColumns) {
+      if (joinPredicate == null) {
         joinPredicate = ColumnOp.equal(
             new BaseColumn(MAIN_TABLE_SOURCE_ALIAS_NAME, columnName),
             new BaseColumn(GROUP_INFO_TABLE_SOURCE_ALIAS_NAME, columnName));
@@ -386,15 +391,14 @@ public class StratifiedScramblingMethod extends ScramblingMethodBase {
 
   /**
    * Create temporary table store the group size of the original table.
-   *
+   * <p>
    * CREATE [stratified_group_table]
    * AS SELECT
-   *   [stratified columns],
-   *   count(*)
+   * [stratified columns],
+   * count(*)
    * FROM
-   *   [original table]
+   * [original table]
    * GROUP BY [startified columns]
-   *
    */
   class StratifiedGroupNode extends CreateTableAsSelectNode {
 
@@ -408,7 +412,7 @@ public class StratifiedScramblingMethod extends ScramblingMethodBase {
 
     private static final long serialVersionUID = -2881242011123433574L;
 
-    private static final String GROUP_COUNT_COLUMN_ALIAS = "verdictdb_group_cnt";
+    public static final String GROUP_COUNT_COLUMN_ALIAS = "verdictdb_group_cnt";
 
     public StratifiedGroupNode(
         IdCreator idCreator,
@@ -460,129 +464,4 @@ public class StratifiedScramblingMethod extends ScramblingMethodBase {
       return token;
     }
   }
-
-
-  /**
-   * This node is used to find the average group size and the standard deviation
-   * from the temporary table created in StratifiedGroupNode.
-   *
-   * SELECT
-   *   avg(GROUP_COUNT_COLUMN_ALIAS),
-   *   stddev(GROUP_COUNT_COLUMN_ALIAS)
-   * FROM [stratified_group_table]
-   *
-   */
-  class GroupDistributionNode extends QueryNodeWithPlaceHolders {
-
-    private static final long serialVersionUID = 3881241211123433574L;
-
-    private static final String GROUP_SIZE_AVG_ALIAS = "verdictdb_group_avg";
-
-    private static final String GROUP_SIZE_STDDEV_ALIAS = "verdictdb_group_stddev";
-
-    static final String GROUP_COUNT_COLUMN_ALIAS = "verdictdb_group_cnt";
-
-    // When this node subscribes to the downstream nodes, this information must be used.
-    private SubscriptionTicket subscriptionTicket;
-
-    public GroupDistributionNode() {
-      super(-1, null);
-
-      // create a selectQuery for this node
-      String tableSourceAlias = "t";
-
-      Pair<BaseTable, SubscriptionTicket> placeholder = createPlaceHolderTable(tableSourceAlias);
-      BaseTable baseTable = placeholder.getLeft();
-      List<SelectItem> selectItemList = new ArrayList<>();
-      selectItemList.add(new AliasedColumn(
-          ColumnOp.avg(new BaseColumn(tableSourceAlias, GROUP_COUNT_COLUMN_ALIAS)), GROUP_SIZE_AVG_ALIAS));
-      selectItemList.add(new AliasedColumn(
-          ColumnOp.std(new BaseColumn(tableSourceAlias, GROUP_COUNT_COLUMN_ALIAS)), GROUP_SIZE_STDDEV_ALIAS));
-      selectQuery = SelectQuery.create(selectItemList, baseTable);
-      subscriptionTicket = placeholder.getRight();
-    }
-
-    public SubscriptionTicket getSubscriptionTicket() {
-      return subscriptionTicket;
-    }
-
-    @Override
-    public SqlConvertible createQuery(List<ExecutionInfoToken> tokens) throws VerdictDBException {
-      this.selectQuery = (SelectQuery) super.createQuery(tokens);
-      return this.selectQuery;
-    }
-
-    @Override
-    public ExecutionInfoToken createToken(DbmsQueryResult result) {
-      ExecutionInfoToken token = new ExecutionInfoToken();
-      token.setKeyValue(this.getClass().getSimpleName(), result);
-      BaseTable t = ((BaseTable) this.selectQuery.getFromList().get(0));
-      token.setKeyValue("schemaName", t.getSchemaName());
-      token.setKeyValue("tableName", t.getTableName());
-      return token;
-    }
-  }
-
-  /**
-   * This node counts the size of rare groups. Rare groups are defined to be
-   * groups of which size is below average by certain value. e.g:
-   * [Group size] < [Average Group Size] - RareGroupMultiplier * [Group Size Standard Deviation]
-   *
-   * SELECT
-   *   sum(GROUP_COUNT_COLUMN_ALIAS)
-   * FROM
-   *   [stratified_group_table]
-   * WHERE
-   *   [some predicate to distinguish rare group]
-   *
-   */
-  class RareGroupSizeNode extends QueryNodeWithPlaceHolders {
-
-    private double RareGroupMultiplier = 1.0;
-
-    private static final long serialVersionUID = -2883642011673433574L;
-
-    private static final String RARE_GROUP_SIZE_ALIAS = "verdictdb_rg_size";
-
-    public RareGroupSizeNode() {
-      super(-1, null);
-    }
-
-    /**
-     * Select sum(GROUP_COUNT_COLUMN_ALIAS) from [stratified_group_table]
-     * where [some predicate to distinguish rare group]
-     */
-    @Override
-    public SqlConvertible createQuery(List<ExecutionInfoToken> tokens) throws VerdictDBException {
-      ExecutionInfoToken token = tokens.get(0);
-
-      String tableSourceAlias = "t";
-      BaseTable baseTable = new BaseTable(
-          (String)token.getValue("schemaName"),
-          (String)token.getValue("tableName"),
-          tableSourceAlias);
-      selectQuery =
-          SelectQuery.create(
-              new AliasedColumn(
-                  ColumnOp.sum(new BaseColumn(tableSourceAlias, GROUP_COUNT_COLUMN_ALIAS)), RARE_GROUP_SIZE_ALIAS),
-              baseTable);
-      DbmsQueryResult groupSizeInfo = (DbmsQueryResult) token.getValue(GroupDistributionNode.class.getSimpleName());
-      groupSizeInfo.rewind();
-      groupSizeInfo.next();
-      Double averageGroupSize = groupSizeInfo.getDouble(0);
-      Double stdGroupSize = groupSizeInfo.getDouble(1);
-      selectQuery.addFilterByAnd(ColumnOp.less(
-          new BaseColumn(tableSourceAlias, GROUP_COUNT_COLUMN_ALIAS),
-          ConstantColumn.valueOf(averageGroupSize - RareGroupMultiplier * stdGroupSize)));
-      return selectQuery;
-    }
-
-    @Override
-    public ExecutionInfoToken createToken(DbmsQueryResult result) {
-      ExecutionInfoToken token = new ExecutionInfoToken();
-      token.setKeyValue(this.getClass().getSimpleName(), result);
-      return token;
-    }
-  }
-
 }

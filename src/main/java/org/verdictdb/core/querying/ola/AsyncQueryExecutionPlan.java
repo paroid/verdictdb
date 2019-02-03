@@ -64,6 +64,8 @@ public class AsyncQueryExecutionPlan extends QueryExecutionPlan {
 
   private int aggColumnIdentiferNum = 0;
 
+  private boolean stratifiedScrambleInvolved = false;
+
   private static final String TIER_COLUMN_ALIAS_KEYWORD = "tier";
 
   private AsyncQueryExecutionPlan(String scratchpadSchemaName, ScrambleMetaSet scrambleMeta) {
@@ -166,6 +168,9 @@ public class AsyncQueryExecutionPlan extends QueryExecutionPlan {
       String schemaName = a.getRight().getLeft();
       String tableName = a.getRight().getMiddle();
       scrambles.add(Pair.of(schemaName, tableName));
+      if (scrambleMeta.getMetaForTable(schemaName, tableName).getMethod().equalsIgnoreCase("stratified")) {
+        stratifiedScrambleInvolved = true;
+      }
     }
     OlaAggregationPlan aggPlan = new OlaAggregationPlan(scrambleMeta, scrambles);
     List<Pair<ExecutableNodeBase, ExecutableNodeBase>> oldSubscriptionInformation =
@@ -243,7 +248,7 @@ public class AsyncQueryExecutionPlan extends QueryExecutionPlan {
 
       // Re-link the subscription relationship for the new AsyncAggNode
       newRoot = SelectAsyncAggExecutionNode.create(
-          idCreator, individualAggNodes, scrambleMeta, aggNodeBlock);
+          idCreator, individualAggNodes, scrambleMeta, aggNodeBlock, stratifiedScrambleInvolved);
       
     } else {
       // Otherwise, create AsyncAggExeuctionNode instead.
@@ -978,5 +983,9 @@ public class AsyncQueryExecutionPlan extends QueryExecutionPlan {
 
   private void resetTierColumnAliasGeneration() {
     resetAliasNameGeneration(TIER_COLUMN_ALIAS_KEYWORD);
+  }
+
+  public boolean isStratifiedScrambleInvolved() {
+    return stratifiedScrambleInvolved;
   }
 }

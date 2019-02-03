@@ -31,6 +31,7 @@ import org.verdictdb.core.querying.QueryExecutionPlanFactory;
 import org.verdictdb.core.querying.ola.AsyncQueryExecutionPlan;
 import org.verdictdb.core.querying.simplifier.QueryExecutionPlanSimplifier;
 import org.verdictdb.core.resulthandler.ExecutionResultReader;
+import org.verdictdb.core.scrambling.ScrambleMeta;
 import org.verdictdb.core.scrambling.ScrambleMetaSet;
 import org.verdictdb.core.sqlobject.AbstractRelation;
 import org.verdictdb.core.sqlobject.AliasedColumn;
@@ -167,6 +168,10 @@ public class SelectQueryCoordinator implements Coordinator {
 
     lastQuery = fasterQuery;
 
+    // If it is stratified scrambling, we only needs
+    if (((AsyncQueryExecutionPlan) asyncPlan).isStratifiedScrambleInvolved()) {
+      reader.next();
+    }
     return reader;
   }
 
@@ -210,7 +215,8 @@ public class SelectQueryCoordinator implements Coordinator {
 
         if (containAggregateItem) {
           if (!method.equalsIgnoreCase("uniform")
-              && !method.equalsIgnoreCase("fastconverge")) {
+              && !method.equalsIgnoreCase("fastconverge")
+              && !method.equalsIgnoreCase("stratified")) {
             throw new VerdictDBValueException(
                 "Simple aggregates must be used with a uniform scramble.");
           }
