@@ -129,15 +129,6 @@ public class RedshiftStratifiedScramblingCoordinatorTest {
     assertEquals(0, result.getInt(0));
     //assertEquals((int) Math.ceil(result2.getInt(0) / (float) blockSize) - 1, result.getInt(1));
 
-    // Rare groups are large enough. Around 50% of first block should be tier0.
-    DbmsQueryResult tierResult =
-        conn.execute(
-            String.format("select count(*) from %s.%s where verdictdbblock=0 and verdictdbtier=0",
-                REDSHIFT_SCHEMA, scrambledTable));
-    tierResult.next();
-    assertEquals(0.5, tierResult.getDouble(0) / blockSize, 0.1);
-
-
     SelectQueryCoordinator coordinator = new SelectQueryCoordinator(conn, options);
     ScrambleMetaSet scrambleMetas = new ScrambleMetaSet();
     scrambleMetas.addScrambleMeta(meta);
