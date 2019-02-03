@@ -168,7 +168,8 @@ public class AsyncQueryExecutionPlan extends QueryExecutionPlan {
       String schemaName = a.getRight().getLeft();
       String tableName = a.getRight().getMiddle();
       scrambles.add(Pair.of(schemaName, tableName));
-      if (scrambleMeta.getMetaForTable(schemaName, tableName).getMethod().equalsIgnoreCase("stratified")) {
+      if (scrambleMeta.getMetaForTable(schemaName, tableName).getMethod()!=null
+          && scrambleMeta.getMetaForTable(schemaName, tableName).getMethod().equalsIgnoreCase("stratified")) {
         stratifiedScrambleInvolved = true;
       }
     }
