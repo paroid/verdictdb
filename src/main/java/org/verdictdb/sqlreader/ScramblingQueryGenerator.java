@@ -38,12 +38,17 @@ public class ScramblingQueryGenerator {
     String sizeInString = create_scramble_statement.SIZE().getText();
     double size = Math.min(Double.valueOf(sizeInString), 100.0) / 100.0;
     long blocksize = Long.parseLong(create_scramble_statement.blocksize.getText());
-    String hashColumnName = stripQuote(create_scramble_statement.hash_column.getText());
+    String hashColumnName = null;
     List<String> stratifiedColumnNames = new ArrayList<>();
-    if (create_scramble_statement.stratified_column != null) {
-      for (VerdictSQLParser.Column_nameContext column:create_scramble_statement.stratified_column.column_name()) {
-        stratifiedColumnNames.add(stripQuote(column.getText()));
+    if (method.equalsIgnoreCase("stratified")) {
+      if (create_scramble_statement.hash_column != null) {
+        for (VerdictSQLParser.Column_nameContext column:create_scramble_statement.hash_column.column_name()) {
+          stratifiedColumnNames.add(stripQuote(column.getText()));
+        }
       }
+    } else {
+      hashColumnName =
+          (create_scramble_statement.hash_column == null) ? null : stripQuote(create_scramble_statement.hash_column.column_name(0).getText());
     }
     long leastSamplingSize = (create_scramble_statement.samplingsize == null) ?
         1 : Long.parseLong(create_scramble_statement.samplingsize.getText());
