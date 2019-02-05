@@ -34,13 +34,11 @@ public class StratifiedScramblingMethod extends ScramblingMethodBase {
 
   private static final long serialVersionUID = 8120705615187201159L;
 
-  // If at least k rows of each group should be selected, the minimumSamplingSize = k*a,
+  // If at least k rows of each group should be selected, the leastSamplingSize = k*a,
   // where a is the uniform sampling ratio.
-  static private long minimumSamplingSize = 15;
+  private long leastSamplingSize = 15;
 
   double p0 = 0.5; // max portion for Tier 0; should be configured dynamically in the future
-
-  private String primaryColumnName = null;
 
   private String scratchpadSchemaName;
 
@@ -49,8 +47,6 @@ public class StratifiedScramblingMethod extends ScramblingMethodBase {
   private List<Double> tier1CumulProbDist = null;
 
   private List<String> stratifiedColumns = new ArrayList<>();
-
-  private long rareGroupSize = 0; // tier 0 size
 
   private double sampleingRatio = 0.1;
 
@@ -76,19 +72,11 @@ public class StratifiedScramblingMethod extends ScramblingMethodBase {
   }
 
   public StratifiedScramblingMethod(
-      long blockSize, String scratchpadSchemaName, String primaryColumnName) {
+      long blockSize, String scratchpadSchemaName, long leastSamplingSize, double sampleingRatio) {
     this(blockSize, scratchpadSchemaName);
-    this.primaryColumnName = primaryColumnName;
+    this.sampleingRatio = sampleingRatio;
+    this.leastSamplingSize = (long) Math.ceil(leastSamplingSize / sampleingRatio);
     this.type = "stratified";
-  }
-
-  public StratifiedScramblingMethod(
-      Map<Integer, List<Double>> probDist, String primaryColumnName) {
-    super(probDist);
-    this.type = "stratified";
-    this.primaryColumnName = primaryColumnName;
-    this.tier0CumulProbDist = probDist.get(0);
-    this.tier1CumulProbDist = probDist.get(1);
   }
 
   public void setStratifiedColumns(List<String> stratifiedColumns) {
@@ -119,25 +107,25 @@ public class StratifiedScramblingMethod extends ScramblingMethodBase {
     return statisticsNodes;
   }
 
-  static UnnamedColumn createRareGroupTuplePredicate(
+  private UnnamedColumn createRareGroupTuplePredicate(
       String sourceTableAlias) {
     boolean printLog = false;
     return createRareGroupTuplePredicate(sourceTableAlias, printLog);
   }
 
-  static UnnamedColumn createRareGroupTuplePredicate(
+  private UnnamedColumn createRareGroupTuplePredicate(
       String sourceTableAlias, boolean printLog) {
     if (printLog) {
       log.info(
           String.format(
               "In stratified columns, the groups of which sizes are below %d"
                   + "will be prioritized in future query processing.",
-              minimumSamplingSize));
+              leastSamplingSize));
     }
 
     UnnamedColumn outlierPredicate = ColumnOp.less(
         new BaseColumn(sourceTableAlias, StratifiedGroupNode.GROUP_COUNT_COLUMN_ALIAS),
-        ConstantColumn.valueOf(minimumSamplingSize));
+        ConstantColumn.valueOf(leastSamplingSize));
     return outlierPredicate;
   }
 

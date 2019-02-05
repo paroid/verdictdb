@@ -524,6 +524,12 @@ public class ExecutionContext {
             RelationGen g = new RelationGen();
             BaseTable originalTable = (BaseTable) g.visit(ctx.original_table);
             BaseTable scrambleTable = (BaseTable) g.visit(ctx.scrambled_table);
+            if (ctx.original_table.schema==null) {
+              originalTable.setSchemaName(conn.getDefaultSchema());
+            }
+            if (ctx.scrambled_table.schema==null) {
+              scrambleTable.setSchemaName(conn.getDefaultSchema());
+            }
             String method = (ctx.method == null) ? "uniform" : stripQuote(ctx.method.getText());
             double percent =
                 (ctx.percent == null) ? 1.0 : Double.parseDouble(ctx.percent.getText());
@@ -533,8 +539,15 @@ public class ExecutionContext {
                     : Long.parseLong(ctx.blocksize.getText());
             String hashColumnName =
                 (ctx.hash_column == null) ? null : stripQuote(ctx.hash_column.getText());
+            List<String> stratifiedColumnNames = new ArrayList<>();
+            if (ctx.stratified_column != null) {
+              for (VerdictSQLParser.Column_nameContext column:ctx.stratified_column.column_name()) {
+                stratifiedColumnNames.add(stripQuote(column.getText()));
+              }
+            }
             CondGen cond = new CondGen();
             UnnamedColumn where = (ctx.where == null ? null : cond.visit(ctx.where));
+            long leastSamplingSize = (ctx.samplingsize == null) ? 1 : Long.parseLong(ctx.samplingsize.getText());
 
             CreateScrambleQuery query =
                 new CreateScrambleQuery(
@@ -546,7 +559,9 @@ public class ExecutionContext {
                     percent,
                     blocksize,
                     hashColumnName,
-                    where);
+                    stratifiedColumnNames,
+                    where,
+                    leastSamplingSize);
             if (ctx.IF() != null) query.setIfNotExists(true);
             return query;
           }

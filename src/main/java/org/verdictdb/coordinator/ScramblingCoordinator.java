@@ -198,6 +198,8 @@ public class ScramblingCoordinator {
             primaryColumn,
             1.0,
             null,
+            new ArrayList<>(),
+            0,
             customOptions);
     return meta;
   }
@@ -287,6 +289,8 @@ public class ScramblingCoordinator {
     String newTable = query.getNewTable();
     String methodName = query.getMethod();
     String primaryColumn = query.getHashColumnName();
+    List<String> stratifiedColumns = query.getStratifiedColumnNames();
+    long leastSamplingSize = query.getLeastSamplingSize();
     double relativeSize = query.getSize();
     Map<String, String> customOptions = new HashMap<>(options);
     customOptions.put("minScrambleTableBlockSize", Long.toString(query.getBlockSize()));
@@ -301,6 +305,8 @@ public class ScramblingCoordinator {
             primaryColumn,
             relativeSize,
             query.getWhere(),
+            stratifiedColumns,
+            leastSamplingSize,
             customOptions);
 
     return meta;
@@ -325,6 +331,8 @@ public class ScramblingCoordinator {
             primaryColumn,
             1.0,
             null,
+            new ArrayList<>(),
+            0,
             customOptions);
     return meta;
   }
@@ -338,6 +346,8 @@ public class ScramblingCoordinator {
    * @param primaryColumn Passes hashcolumn for hash sampling.
    * @param relativeSize The ratio of a scramble in comparison to the original table.
    * @param where condition to be used for creating a scramble
+   * @param stratifiedColumns Passes stratified columns for stratified sampling
+   * @param leastSamplingSize Passes least sampling size for stratified sampling
    * @param customOptions
    * @return
    * @throws VerdictDBException
@@ -352,6 +362,8 @@ public class ScramblingCoordinator {
       String primaryColumn,
       double relativeSize,
       UnnamedColumn where,
+      List<String> stratifiedColumns,
+      long leastSamplingSize,
       Map<String, String> customOptions)
       throws VerdictDBException {
 
@@ -395,9 +407,9 @@ public class ScramblingCoordinator {
       scramblingMethodBase =
           new FastConvergeScramblingMethod(blockSize, scratchpadSchema.get(), primaryColumn);
 
-    } else if (methodName.equalsIgnoreCase("stratified") && primaryColumn != null) {
-      scramblingMethodBase = new StratifiedScramblingMethod(blockSize, scratchpadSchema.get(), primaryColumn);
-      ((StratifiedScramblingMethod) scramblingMethodBase).setStratifiedColumns(Arrays.asList(primaryColumn));
+    } else if (methodName.equalsIgnoreCase("stratified") && !stratifiedColumns.isEmpty()) {
+      scramblingMethodBase = new StratifiedScramblingMethod(blockSize, scratchpadSchema.get(), leastSamplingSize, relativeSize);
+      ((StratifiedScramblingMethod) scramblingMethodBase).setStratifiedColumns(stratifiedColumns);
     } else {
       throw new VerdictDBValueException("Invalid scrambling method: " + methodName);
     }

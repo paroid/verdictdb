@@ -64,6 +64,12 @@ public class CreateScrambleQuery extends CreateTableQuery {
   /** Existing partition columns in the original table */
   private List<String> existingPartitionColumns;
 
+  /** The columns (if present) used for stratified sampling */
+  private List<String> stratifiedColumnNames = null;
+
+  /** least sampling size of stratified scrambling */
+  private long leastSamplingSize = 1;
+
   public CreateScrambleQuery() {}
 
   public CreateScrambleQuery(
@@ -75,7 +81,9 @@ public class CreateScrambleQuery extends CreateTableQuery {
       double size,
       long blocksize,
       String hashColumnName,
-      UnnamedColumn where) {
+      List<String> stratifiedColumnNames,
+      UnnamedColumn where,
+      long leastSamplingSize) {
     super();
     this.newSchema = newSchema;
     this.newTable = newTable;
@@ -85,7 +93,9 @@ public class CreateScrambleQuery extends CreateTableQuery {
     this.size = size;
     this.blocksize = blocksize;
     this.hashColumnName = hashColumnName;
+    this.stratifiedColumnNames = stratifiedColumnNames;
     this.where = where;
+    this.leastSamplingSize = leastSamplingSize;
   }
 
   public void setExistingPartitionColumns(List<String> existingPartitionColumns) {
@@ -118,7 +128,7 @@ public class CreateScrambleQuery extends CreateTableQuery {
               + "hash column name must be present.");
     }
 
-    if (method.equals("stratified") && hashColumnName == null) {
+    if (method.equals("stratified") && stratifiedColumnNames.isEmpty()) {
       throw new VerdictDBValueException(
           "The stratified column is null."
               + "If the scrambling method is stratified, "
@@ -170,6 +180,8 @@ public class CreateScrambleQuery extends CreateTableQuery {
     return size;
   }
 
+  public long getLeastSamplingSize() { return leastSamplingSize; }
+
   public long getBlockSize() {
     return blocksize;
   }
@@ -177,6 +189,8 @@ public class CreateScrambleQuery extends CreateTableQuery {
   public String getHashColumnName() {
     return hashColumnName;
   }
+
+  public List<String> getStratifiedColumnNames() { return stratifiedColumnNames; }
 
   public void setNewSchema(String newSchema) {
     this.newSchema = newSchema;

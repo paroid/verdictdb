@@ -17,8 +17,12 @@
 package org.verdictdb.sqlreader;
 
 import org.verdictdb.core.sqlobject.CreateScrambleQuery;
+import org.verdictdb.parser.VerdictSQLParser;
 import org.verdictdb.parser.VerdictSQLParser.Create_scramble_statementContext;
 import org.verdictdb.parser.VerdictSQLParser.Table_nameContext;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class ScramblingQueryGenerator {
 
@@ -35,6 +39,14 @@ public class ScramblingQueryGenerator {
     double size = Math.min(Double.valueOf(sizeInString), 100.0) / 100.0;
     long blocksize = Long.parseLong(create_scramble_statement.blocksize.getText());
     String hashColumnName = stripQuote(create_scramble_statement.hash_column.getText());
+    List<String> stratifiedColumnNames = new ArrayList<>();
+    if (create_scramble_statement.stratified_column != null) {
+      for (VerdictSQLParser.Column_nameContext column:create_scramble_statement.stratified_column.column_name()) {
+        stratifiedColumnNames.add(stripQuote(column.getText()));
+      }
+    }
+    long leastSamplingSize = (create_scramble_statement.samplingsize == null) ?
+        1 : Long.parseLong(create_scramble_statement.samplingsize.getText());
 
     CreateScrambleQuery query =
         new CreateScrambleQuery(
@@ -46,7 +58,9 @@ public class ScramblingQueryGenerator {
             size,
             blocksize,
             hashColumnName,
-            null);
+            stratifiedColumnNames,
+            null,
+            leastSamplingSize);
 
     return query;
   }
