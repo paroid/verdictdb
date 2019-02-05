@@ -168,10 +168,6 @@ public class SelectQueryCoordinator implements Coordinator {
 
     lastQuery = fasterQuery;
 
-    // If it is stratified scrambling, we only needs
-    if (((AsyncQueryExecutionPlan) asyncPlan).isStratifiedScrambleInvolved()) {
-      reader.next();
-    }
     return reader;
   }
 

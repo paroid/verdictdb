@@ -70,8 +70,7 @@ create_scramble_statement
     : CREATE SCRAMBLE (IF NOT EXISTS)? scrambled_table=table_name FROM original_table=table_name
       (WHERE where=search_condition)?
       (METHOD method=scrambling_method_name)?
-      ((HASHCOLUMN | ON) hash_column=column_name)?
-      (STRATIFIED BY stratified_column=column_name_list)?
+      ((HASHCOLUMN | ON) hash_column=column_name_list)?
       ((SIZE | RATIO) percent=FLOAT)?
       (BLOCKSIZE blocksize=DECIMAL)?
       (LEASTSAMPLINGSIZE samplingsize=DECIMAL)?

@@ -57,7 +57,7 @@ public class StratifiedScramblingMethod extends ScramblingMethodBase {
   private int totalNumberOfblocks = -1;
 
   private static VerdictDBLogger log =
-      VerdictDBLogger.getLogger(FastConvergeScramblingMethod.class);
+      VerdictDBLogger.getLogger(StratifiedScramblingMethod.class);
 
   private static final int DEFAULT_MAX_BLOCK_COUNT = 100;
 
@@ -93,7 +93,7 @@ public class StratifiedScramblingMethod extends ScramblingMethodBase {
 
     List<ExecutableNodeBase> statisticsNodes = new ArrayList<>();
 
-    // Group Count info
+    // Group Coun mvn -DskipTests -DtestPhase=false -DpackagePhase=true clean packaget info
     TempIdCreatorInScratchpadSchema idCreator =
         new TempIdCreatorInScratchpadSchema(scratchpadSchemaName);
     StratifiedGroupNode sg = new StratifiedGroupNode(
@@ -241,8 +241,8 @@ public class StratifiedScramblingMethod extends ScramblingMethodBase {
     Pair<Long, Integer> tableSizeAndBlockNumber = retrieveTableSizeAndBlockNumber(metaData);
     int totalNumberOfblocks = tableSizeAndBlockNumber.getRight();
 
-    cumulProbDist.add(0.0);
-    for (int i = 1; i < totalNumberOfblocks - 1; i++) {
+    cumulProbDist.add(sampleingRatio);
+    for (int i = 0; i < totalNumberOfblocks - 1; i++) {
       cumulProbDist.add(cumulProbDist.get(i-1)+sampleingRatio);
     }
     cumulProbDist.add(1.0);
@@ -283,14 +283,14 @@ public class StratifiedScramblingMethod extends ScramblingMethodBase {
   }
 
   // Helper
-  // Block number of stratified sampling is 1 + (1 / sampling ratio). All rare groups go to block 0.
+  // Block number of stratified sampling is (1 / sampling ratio). All rare groups go to block 0.
   private Pair<Long, Integer> retrieveTableSizeAndBlockNumber(Map<String, Object> metaData) {
     DbmsQueryResult tableSizeResult =
         (DbmsQueryResult) metaData.get(TableSizeCountNode.class.getSimpleName());
     tableSizeResult.rewind();
     tableSizeResult.next();
     long tableSize = tableSizeResult.getLong(TableSizeCountNode.TOTAL_COUNT_ALIAS_NAME);
-    totalNumberOfblocks = 1 + (int) Math.ceil(1 / sampleingRatio);
+    totalNumberOfblocks = (int) Math.ceil(1 / sampleingRatio);
     return Pair.of(tableSize, totalNumberOfblocks);
   }
 

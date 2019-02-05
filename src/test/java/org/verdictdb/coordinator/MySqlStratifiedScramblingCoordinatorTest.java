@@ -16,6 +16,7 @@ import org.verdictdb.exception.VerdictDBDbmsException;
 import org.verdictdb.exception.VerdictDBException;
 
 import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Arrays;
@@ -78,15 +79,13 @@ public class MySqlStratifiedScramblingCoordinatorTest {
     assertEquals(1000, rowCount);
   }
 
+
   @Test
-  public void testScramblingCoordinatorLineitem() throws VerdictDBException {
-    testScramblingCoordinator("lineitem", "l_quantity");
-  }
-
-
-  public void testScramblingCoordinator(String tablename, String columnname) throws VerdictDBException {
+  public void testScramblingCoordinator() throws VerdictDBException, SQLException {
     DbmsConnection conn = JdbcConnection.create(mysqlConn);
 
+    String tablename = "lineitem";
+    String columnname = "l_quantity";
     String scrambleSchema = MYSQL_DATABASE;
     String scratchpadSchema = MYSQL_DATABASE;
     long blockSize = 100;
@@ -133,7 +132,50 @@ public class MySqlStratifiedScramblingCoordinatorTest {
       reader.next();
       count++;
     }
-    // has 11 blocks, but block0 should not return result.
+
+    // check the scrambling block number is correct
     assertEquals(10, count);
+
+
+    // check block 0 contains all groups
+    int groupNumber = 0;
+    ResultSet rs1 = mysqlStmt.executeQuery(String.format(
+        "select count(distinct %s) from %s.%s", columnname, MYSQL_DATABASE, originalTable));
+    ResultSet rs2 = mysqlStmt.executeQuery(String.format(
+        "select count(distinct %s) from %s.%s where verdictdbblock = 0", columnname, MYSQL_DATABASE, scrambledTable));
+    rs1.next();
+    rs2.next();
+    groupNumber = rs1.getInt(1);
+    assertEquals(groupNumber, rs2.getInt(1));
+
+    // check block0 has at least k/a rows for each group
+    // k is minimum sampling size and a is the sampling ratio
+    rs1 = mysqlStmt.executeQuery(String.format(
+        "select count(*) as cnt " +
+            "from (select count(*) as groupSize, %s " +
+              "from %s.%s where verdictdbblock = 0 group by %s) " +
+            "where groupSize < %f", columnname, MYSQL_DATABASE, scrambledTable, columnname, 1 / 0.1));
+    rs2 = mysqlStmt.executeQuery(String.format(
+        "select count(*) as cnt " +
+            "from (select count(*) as groupSize, %s " +
+            "from %s.%s group by %s) " +
+            "where groupSize < %f", columnname, MYSQL_DATABASE, originalTable, columnname, 1 / 0.1));
+    rs1.next();
+    rs2.next();
+    assertEquals(rs1.getInt(1), rs2.getInt(1));
+
+    // check group-by query on stratified scrambles doesn't miss any groups
+    reader =
+        coordinator.process(
+            String.format("select count(*) from %s.%s group by %s",
+                MYSQL_DATABASE, scrambledTable, columnname));
+    DbmsQueryResult dbmsQueryResult = reader.next();
+    int row = 0;
+    while (dbmsQueryResult.next()) {
+      row++;
+    }
+    assertEquals(groupNumber, row);
   }
+
+
 }

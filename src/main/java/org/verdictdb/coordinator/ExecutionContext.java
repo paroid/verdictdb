@@ -537,14 +537,19 @@ public class ExecutionContext {
                 (ctx.blocksize == null)
                     ? (long) conn.getSyntax().getRecommendedblockSize()
                     : Long.parseLong(ctx.blocksize.getText());
-            String hashColumnName =
-                (ctx.hash_column == null) ? null : stripQuote(ctx.hash_column.getText());
             List<String> stratifiedColumnNames = new ArrayList<>();
-            if (ctx.stratified_column != null) {
-              for (VerdictSQLParser.Column_nameContext column:ctx.stratified_column.column_name()) {
-                stratifiedColumnNames.add(stripQuote(column.getText()));
+            String hashColumnName = null;
+            if (method.equalsIgnoreCase("stratified")) {
+              if (ctx.hash_column != null) {
+                for (VerdictSQLParser.Column_nameContext column:ctx.hash_column.column_name()) {
+                  stratifiedColumnNames.add(stripQuote(column.getText()));
+                }
               }
+            } else {
+              hashColumnName =
+                  (ctx.hash_column == null) ? null : stripQuote(ctx.hash_column.column_name(0).getText());
             }
+
             CondGen cond = new CondGen();
             UnnamedColumn where = (ctx.where == null ? null : cond.visit(ctx.where));
             long leastSamplingSize = (ctx.samplingsize == null) ? 1 : Long.parseLong(ctx.samplingsize.getText());
