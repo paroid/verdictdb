@@ -21,6 +21,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
@@ -93,7 +94,8 @@ public class ImpalaStratifiedScramblingCoordinatorTest {
     String originalTable = tablename;
     String scrambledTable = tablename + "_scrambled";
     conn.execute(String.format("drop table if exists %s.%s", IMPALA_DATABASE, scrambledTable));
-    ScrambleMeta meta = scrambler.scramble(originalSchema, originalTable, originalSchema, scrambledTable, "stratified", columnname);
+    ScrambleMeta meta = scrambler.scramble(originalSchema, originalTable, originalSchema, scrambledTable, "stratified",
+        columnname, 0.1, null, Arrays.asList(columnname), 1, new HashMap<String, String>());
 
     // tests
     List<Pair<String, String>> originalColumns = conn.getColumns(IMPALA_DATABASE, originalTable);
@@ -115,12 +117,6 @@ public class ImpalaStratifiedScramblingCoordinatorTest {
     result2.next();
     assertEquals(result1.getInt(0), result2.getInt(0));
 
-    DbmsQueryResult result =
-        conn.execute(
-            String.format("select min(verdictdbblock), max(verdictdbblock) from %s.%s",
-                IMPALA_DATABASE, scrambledTable));
-    result.next();
-    assertEquals(0, result.getInt(0));
     //assertEquals((int) Math.ceil(result2.getInt(0) / (float) blockSize) - 1, result.getInt(1));
 
     SelectQueryCoordinator coordinator = new SelectQueryCoordinator(conn, options);
@@ -129,7 +125,7 @@ public class ImpalaStratifiedScramblingCoordinatorTest {
     coordinator.setScrambleMetaSet(scrambleMetas);
     ExecutionResultReader reader =
         coordinator.process(
-            String.format("select count(*) from %s.%s where verdictdbblock=0 and verdictdbtier=0",
+            String.format("select count(*) from %s.%s",
                 IMPALA_DATABASE, scrambledTable));
     int count = 0;
     while (reader.hasNext()) {
