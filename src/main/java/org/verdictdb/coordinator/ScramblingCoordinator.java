@@ -198,7 +198,7 @@ public class ScramblingCoordinator {
             primaryColumn,
             1.0,
             null,
-            new ArrayList<>(),
+            new ArrayList<String>(),
             0,
             customOptions);
     return meta;
@@ -331,7 +331,7 @@ public class ScramblingCoordinator {
             primaryColumn,
             1.0,
             null,
-            new ArrayList<>(),
+            new ArrayList<String>(),
             0,
             customOptions);
     return meta;
