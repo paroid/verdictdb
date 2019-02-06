@@ -60,7 +60,6 @@ public class MySqlStratifiedScramblingCoordinatorTest {
         DatabaseConnectionHelpers.setupMySql(
             mysqlConnectionString, MYSQL_UESR, MYSQL_PASSWORD, MYSQL_DATABASE);
     mysqlStmt = mysqlConn.createStatement();
-
   }
 
   @AfterClass

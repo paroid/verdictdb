@@ -880,7 +880,7 @@ public class DatabaseConnectionHelpers {
 
     Connection conn = DriverManager.getConnection(connectionString, user, password);
     DbmsConnection dbmsConn = JdbcConnection.create(conn);
-
+    dbmsConn.execute("set global local_infile = 1");
     dbmsConn.execute(String.format("DROP SCHEMA IF EXISTS `%s`", schema));
     dbmsConn.execute(String.format("CREATE SCHEMA IF NOT EXISTS `%s`", schema));
 
