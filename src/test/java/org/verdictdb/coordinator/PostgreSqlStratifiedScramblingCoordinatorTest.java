@@ -135,7 +135,6 @@ public class PostgreSqlStratifiedScramblingCoordinatorTest {
       reader.next();
       count++;
     }
-    // has 11 blocks, but block0 should not return result.
     assertEquals(10, count);
   }
 

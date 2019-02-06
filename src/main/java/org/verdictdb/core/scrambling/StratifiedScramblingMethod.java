@@ -242,7 +242,7 @@ public class StratifiedScramblingMethod extends ScramblingMethodBase {
     int totalNumberOfblocks = tableSizeAndBlockNumber.getRight();
 
     cumulProbDist.add(sampleingRatio);
-    for (int i = 0; i < totalNumberOfblocks - 1; i++) {
+    for (int i = 1; i < totalNumberOfblocks - 1; i++) {
       cumulProbDist.add(cumulProbDist.get(i-1)+sampleingRatio);
     }
     cumulProbDist.add(1.0);

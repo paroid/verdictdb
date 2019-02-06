@@ -18,6 +18,7 @@ import org.verdictdb.exception.VerdictDBException;
 
 import java.io.IOException;
 import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Arrays;
@@ -83,13 +84,10 @@ public class RedshiftStratifiedScramblingCoordinatorTest {
   }
 
   @Test
-  public void testScramblingCoordinatorLineitem() throws VerdictDBException {
-    testScramblingCoordinator("lineitem", "l_quantity");
-  }
-
-  public void testScramblingCoordinator(String tablename, String columnname) throws VerdictDBException {
+  public void testScramblingCoordinator() throws VerdictDBException, SQLException {
     DbmsConnection conn = JdbcConnection.create(redshiftConn);
-
+    String tablename = "lineitem";
+    String columnname = "l_discount";
     String scrambleSchema = REDSHIFT_SCHEMA;
     String scratchpadSchema = REDSHIFT_SCHEMA;
     long blockSize = 100;
@@ -101,7 +99,7 @@ public class RedshiftStratifiedScramblingCoordinatorTest {
     String scrambledTable = tablename + "_scrambled";
     conn.execute(String.format("drop table if exists %s.%s", REDSHIFT_SCHEMA, scrambledTable));
     ScrambleMeta meta = scrambler.scramble(originalSchema, originalTable, originalSchema, scrambledTable, "stratified",
-        columnname, 0.1, null, Arrays.asList(columnname), 1, new HashMap<String, String>());
+        columnname, 0.1, null, Arrays.asList(columnname), 7, new HashMap<String, String>());
 
     // tests
     List<Pair<String, String>> originalColumns = conn.getColumns(REDSHIFT_SCHEMA, originalTable);
@@ -138,8 +136,30 @@ public class RedshiftStratifiedScramblingCoordinatorTest {
       reader.next();
       count++;
     }
-    // has 11 blocks, but block0 should not return result.
     assertEquals(10, count);
+
+    // check block 0 contains all groups
+    int groupNumber = 0;
+    ResultSet rs1 = stmt.executeQuery(String.format(
+        "select count(distinct %s) from %s.%s", columnname, REDSHIFT_SCHEMA, originalTable));
+    rs1.next();
+    groupNumber = rs1.getInt(1);
+    ResultSet rs2 = stmt.executeQuery(String.format(
+        "select count(distinct %s) from %s.%s where verdictdbblock = 0", columnname, REDSHIFT_SCHEMA, scrambledTable));
+    rs2.next();
+    assertEquals(groupNumber, rs2.getInt(1));
+
+    // check group-by query on stratified scrambles doesn't miss any groups
+    reader =
+        coordinator.process(
+            String.format("select count(*) from %s.%s group by %s order by %s",
+                REDSHIFT_SCHEMA, scrambledTable, columnname, columnname));
+    DbmsQueryResult dbmsQueryResult = reader.next();
+    int row = 0;
+    while (dbmsQueryResult.next()) {
+      row++;
+    }
+    assertEquals(groupNumber, row);
   }
 
 }
