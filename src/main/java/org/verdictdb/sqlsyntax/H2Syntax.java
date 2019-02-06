@@ -69,6 +69,11 @@ public class H2Syntax extends SqlSyntax {
   }
 
   @Override
+  public String rowNumberFunction(String partition) {
+    return "rownum()";
+  }
+
+  @Override
   public String getSchemaCommand() {
     return "show schemas";
   }

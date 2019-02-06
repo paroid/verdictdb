@@ -105,6 +105,12 @@ public class SparkSyntax extends SqlSyntax {
   }
 
   @Override
+  public String rowNumberFunction(String partition) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
   public boolean isAsRequiredBeforeSelectInCreateTable() {
     return true;
   }

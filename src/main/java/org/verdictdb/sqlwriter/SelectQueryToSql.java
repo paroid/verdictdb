@@ -121,9 +121,7 @@ public class SelectQueryToSql {
       return ((ConstantColumn) column).getValue().toString();
     } else if (column instanceof AsteriskColumn) {
       return "*";
-    } 
-    
-    else if (column instanceof ColumnOp) {
+    } else if (column instanceof ColumnOp) {
       ColumnOp columnOp = (ColumnOp) column;
       if (columnOp.getOpType().equals("avg")) {
         return "avg(" + unnamedColumnToSqlPart(columnOp.getOperand()) + ")";
@@ -318,6 +316,14 @@ public class SelectQueryToSql {
         return syntax.randFunction();
       } else if (columnOp.getOpType().equals("hash")) {
         return syntax.hashFunction(withParentheses(columnOp.getOperand()));
+      } else if (columnOp.getOpType().equals("rownumber")) {
+        String temp = "";
+        for (int i = 0; i < columnOp.getOperands().size(); i++) {
+          if (i != columnOp.getOperands().size() - 1) {
+            temp = temp + withParentheses(columnOp.getOperands().get(i)) + ", ";
+          } else temp = temp + withParentheses(columnOp.getOperands().get(i));
+        }
+        return syntax.rowNumberFunction(temp);
       } else if (columnOp.getOpType().equals("cast")) {
         // MySQL cast as int should be replaced by cast as unsigned
         if (syntax instanceof MysqlSyntax

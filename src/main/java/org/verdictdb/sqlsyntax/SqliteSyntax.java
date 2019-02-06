@@ -104,6 +104,12 @@ public class SqliteSyntax extends SqlSyntax {
   }
 
   @Override
+  public String rowNumberFunction(String order) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
   public boolean isAsRequiredBeforeSelectInCreateTable() {
     // TODO Auto-generated method stub
     return false;

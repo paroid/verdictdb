@@ -114,6 +114,15 @@ public class HiveSyntax extends SqlSyntax {
   }
 
   @Override
+  public String rowNumberFunction(String partition) {
+    if (partition.equals("")) {
+      return "ROW_NUMBER() OVER ()";
+    } else {
+      return String.format("ROW_NUMBER() OVER (PARTITION BY%s)", partition);
+    }
+  }
+
+  @Override
   public boolean isAsRequiredBeforeSelectInCreateTable() {
     return true;
   }

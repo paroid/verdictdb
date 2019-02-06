@@ -53,6 +53,8 @@ public abstract class SqlSyntax {
   public abstract int getTableNameColumnIndex();
 
   public abstract String randFunction();
+
+  public abstract String rowNumberFunction(String partitions);
   
   /**
    * This indicates the size of each block. Using a smaller block increases the speed at the cost

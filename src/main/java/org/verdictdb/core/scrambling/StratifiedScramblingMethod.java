@@ -7,6 +7,7 @@ import org.verdictdb.core.execplan.ExecutionInfoToken;
 import org.verdictdb.core.querying.*;
 import org.verdictdb.core.sqlobject.*;
 import org.verdictdb.exception.VerdictDBException;
+import scala.collection.immutable.Stream;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -14,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.verdictdb.core.scrambling.ScramblingNode.computeConditionalProbabilityDistribution;
+import static org.verdictdb.core.scrambling.StratifiedScramblingMethod.StratifiedGroupNode.GROUP_COUNT_COLUMN_ALIAS;
 
 /**
  * Policy: 1. Tier 0: tuples containing rare groups. 2. Tier 1: other tuples
@@ -52,7 +54,11 @@ public class StratifiedScramblingMethod extends ScramblingMethodBase {
 
   public static final String MAIN_TABLE_SOURCE_ALIAS_NAME = "t1";
 
+  public static final String ORIGINAL_TABLE_SOURCE_ALIAS_NAME = "t0";
+
   public static final String GROUP_INFO_TABLE_SOURCE_ALIAS_NAME = "t2";
+
+  public static final String ROW_NUMBER_COLUMN_ALIAS_NAME = "verdictdb_row_number";
 
   private int totalNumberOfblocks = -1;
 
@@ -124,7 +130,7 @@ public class StratifiedScramblingMethod extends ScramblingMethodBase {
     }
 
     UnnamedColumn outlierPredicate = ColumnOp.less(
-        new BaseColumn(sourceTableAlias, StratifiedGroupNode.GROUP_COUNT_COLUMN_ALIAS),
+        new BaseColumn(sourceTableAlias, GROUP_COUNT_COLUMN_ALIAS),
         ConstantColumn.valueOf(leastSamplingSize));
     return outlierPredicate;
   }
@@ -133,7 +139,7 @@ public class StratifiedScramblingMethod extends ScramblingMethodBase {
   public List<UnnamedColumn> getTierExpressions(Map<String, Object> metaData) {
     // Tier 0
     UnnamedColumn tier0Predicate =
-        createRareGroupTuplePredicate(StratifiedScramblingMethod.GROUP_INFO_TABLE_SOURCE_ALIAS_NAME);
+        createRareGroupTuplePredicate(StratifiedScramblingMethod.MAIN_TABLE_SOURCE_ALIAS_NAME);
 
     // Tier 1: automatically handled by this function's caller
     return Arrays.asList(tier0Predicate);
@@ -305,27 +311,41 @@ public class StratifiedScramblingMethod extends ScramblingMethodBase {
     for (String columnName : stratifiedColumns) {
       if (joinPredicate == null) {
         joinPredicate = ColumnOp.equal(
-            new BaseColumn(MAIN_TABLE_SOURCE_ALIAS_NAME, columnName),
+            new BaseColumn(ORIGINAL_TABLE_SOURCE_ALIAS_NAME, columnName),
             new BaseColumn(GROUP_INFO_TABLE_SOURCE_ALIAS_NAME, columnName));
       } else {
         joinPredicate = ColumnOp.and(
             joinPredicate,
             ColumnOp.equal(
-                new BaseColumn(MAIN_TABLE_SOURCE_ALIAS_NAME, columnName),
+                new BaseColumn(ORIGINAL_TABLE_SOURCE_ALIAS_NAME, columnName),
                 new BaseColumn(GROUP_INFO_TABLE_SOURCE_ALIAS_NAME, columnName)));
       }
     }
     JoinTable source =
         JoinTable.create(
             Arrays.<AbstractRelation>asList(
-                new BaseTable(originalSchema, originalTable, MAIN_TABLE_SOURCE_ALIAS_NAME),
+                new BaseTable(originalSchema, originalTable, ORIGINAL_TABLE_SOURCE_ALIAS_NAME),
                 new BaseTable(
                     groupDistributionSchemaName,
                     groupDistributionTableName,
                     GROUP_INFO_TABLE_SOURCE_ALIAS_NAME)),
             Arrays.asList(JoinTable.JoinType.leftouter),
             Arrays.asList(joinPredicate));
-    return source;
+
+    // create temp table for row number
+    List<SelectItem> selectItemList = new ArrayList<>();
+    for (Pair<String, String> columns:(List<Pair>)metaData.get("scramblingPlan:columnMetaData")) {
+      selectItemList.add(new BaseColumn(ORIGINAL_TABLE_SOURCE_ALIAS_NAME, columns.getKey()));
+    }
+    List<UnnamedColumn> stratifiedColumnsList = new ArrayList<>();
+    for (String columnName:stratifiedColumns) {
+      stratifiedColumnsList.add(new BaseColumn(ORIGINAL_TABLE_SOURCE_ALIAS_NAME, columnName));
+    }
+    selectItemList.add(new AliasedColumn(new ColumnOp("rownumber", stratifiedColumnsList), ROW_NUMBER_COLUMN_ALIAS_NAME));
+    selectItemList.add(new BaseColumn(GROUP_INFO_TABLE_SOURCE_ALIAS_NAME, GROUP_COUNT_COLUMN_ALIAS));
+    SelectQuery selectQuery = SelectQuery.create(selectItemList, source);
+    selectQuery.setAliasName(MAIN_TABLE_SOURCE_ALIAS_NAME);
+    return selectQuery;
   }
 
   @Override
@@ -341,8 +361,19 @@ public class StratifiedScramblingMethod extends ScramblingMethodBase {
 
     List<UnnamedColumn> blockForTierOperands = new ArrayList<>();
     for (int j = 0; j < blockCount; j++) {
-      blockForTierOperands.add(
-          ColumnOp.lessequal(ColumnOp.rand(), ConstantColumn.valueOf(condProb.get(j))));
+      // ensure k rows for non-rare group(tier 1)
+      if (tier==1) {
+        ColumnOp lowerBound = ColumnOp.multiply(ConstantColumn.valueOf(j),
+            ColumnOp.multiply(ConstantColumn.valueOf(sampleingRatio), new BaseColumn(GROUP_COUNT_COLUMN_ALIAS)));
+        ColumnOp upperBound = ColumnOp.multiply(ConstantColumn.valueOf(j+1),
+            ColumnOp.multiply(ConstantColumn.valueOf(sampleingRatio), new BaseColumn(GROUP_COUNT_COLUMN_ALIAS)));
+        blockForTierOperands.add(
+            ColumnOp.and(ColumnOp.greater(new BaseColumn(ROW_NUMBER_COLUMN_ALIAS_NAME), lowerBound),
+                ColumnOp.lessequal(new BaseColumn(ROW_NUMBER_COLUMN_ALIAS_NAME), upperBound)));
+      } else {
+        blockForTierOperands.add(
+            ColumnOp.lessequal(ColumnOp.rand(), ConstantColumn.valueOf(condProb.get(j))));
+      }
       blockForTierOperands.add(ConstantColumn.valueOf(j));
     }
     UnnamedColumn blockForTierExpr;

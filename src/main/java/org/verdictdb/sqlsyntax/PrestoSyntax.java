@@ -114,6 +114,11 @@ public class PrestoSyntax extends SqlSyntax {
   }
 
   @Override
+  public String rowNumberFunction(String partition) {
+    return null;
+  }
+
+  @Override
   public boolean isAsRequiredBeforeSelectInCreateTable() {
     return true;
   }

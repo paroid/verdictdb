@@ -162,7 +162,6 @@ public class MySqlStratifiedScramblingCoordinatorTest {
 
     // check block0 has at least k rows for each group
     // k is minimum sampling size
-    /*
     rs1 = mysqlStmt.executeQuery(String.format(
         "select count(*) as cnt " +
             "from (select count(*) as groupSize, %s " +
@@ -177,7 +176,7 @@ public class MySqlStratifiedScramblingCoordinatorTest {
             "where t.groupSize < %f", columnname, MYSQL_DATABASE, originalTable, columnname, 7.0));
     rs2.next();
     assertEquals(rs2.getInt(1), groupNumber);
-    */
+
   }
 
 

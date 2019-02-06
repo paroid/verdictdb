@@ -160,6 +160,23 @@ public class RedshiftStratifiedScramblingCoordinatorTest {
       row++;
     }
     assertEquals(groupNumber, row);
+
+    // check block0 has at least k rows for each group
+    // k is minimum sampling size
+    rs1 = stmt.executeQuery(String.format(
+        "select count(*) as cnt " +
+            "from (select count(*) as groupSize, %s " +
+            "from %s.%s where verdictdbblock = 0 group by %s) as t " +
+            "where t.groupSize < %f", columnname, REDSHIFT_SCHEMA, scrambledTable, columnname, 7.0));
+    rs1.next();
+    groupNumber = rs1.getInt(1);
+    rs2 = stmt.executeQuery(String.format(
+        "select count(*) as cnt " +
+            "from (select count(*) as groupSize, %s " +
+            "from %s.%s group by %s) as t " +
+            "where t.groupSize < %f", columnname, REDSHIFT_SCHEMA, originalTable, columnname, 7.0));
+    rs2.next();
+    assertEquals(rs2.getInt(1), groupNumber);
   }
 
 }

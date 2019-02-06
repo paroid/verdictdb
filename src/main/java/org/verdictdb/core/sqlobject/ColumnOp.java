@@ -60,6 +60,7 @@ public class ColumnOp implements UnnamedColumn, SelectItem {
    *   <li>percentile
    *   <li>mod
    *   <li>hash: returns a value between 0 and 1
+   *   <li>row number: return row number over a given order
    * </ol>
    *
    * <p>Comparison:
@@ -342,6 +343,14 @@ public class ColumnOp implements UnnamedColumn, SelectItem {
 
   public static ColumnOp mod(UnnamedColumn col1, UnnamedColumn col2) {
     return new ColumnOp("mod", Arrays.asList(col1, col2));
+  }
+
+  public static ColumnOp rowNumber(List<UnnamedColumn> cols) {
+    return new ColumnOp("rownumber", cols);
+  }
+
+  public static ColumnOp rowNumber() {
+    return new ColumnOp("rownumber");
   }
 
   @Override
