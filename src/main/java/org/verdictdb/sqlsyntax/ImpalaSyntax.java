@@ -119,7 +119,7 @@ public class ImpalaSyntax extends SqlSyntax {
     if (partition.equals("")) {
       return "ROW_NUMBER() OVER ()";
     } else {
-      return String.format("ROW_NUMBER() OVER (PARTITION BY %s)", partition);
+      return String.format("ROW_NUMBER() OVER (PARTITION BY %s ORDER BY %s)", partition, randFunction());
     }
   }
 

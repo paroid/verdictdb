@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class RedshiftStratifiedScramblingCoordinatorTest {
 
@@ -177,6 +178,21 @@ public class RedshiftStratifiedScramblingCoordinatorTest {
             "where t.groupSize < %f", columnname, REDSHIFT_SCHEMA, originalTable, columnname, 7.0));
     rs2.next();
     assertEquals(rs2.getInt(1), groupNumber);
+
+    // accuracy of block 0
+    // It should be accurate for count() since stratified scrambling is based on ROW_NUMBER()
+    reader =
+        coordinator.process(
+            String.format("select count(*) from %s.%s group by %s order by %s",
+                REDSHIFT_SCHEMA, scrambledTable, columnname, columnname));
+    dbmsQueryResult = reader.next();
+    rs1 = stmt.executeQuery(String.format("select count(*) from %s.%s group by %s order by %s",
+        REDSHIFT_SCHEMA, originalTable, columnname, columnname));
+    while (dbmsQueryResult.next()) {
+      rs1.next();
+      assertTrue(dbmsQueryResult.getLong(0) < rs1.getLong(1) * 1.1
+          && dbmsQueryResult.getLong(0) > rs1.getLong(1) * 0.9);
+    }
   }
 
 }
