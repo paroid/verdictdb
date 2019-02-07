@@ -90,7 +90,7 @@ public class JdbcResultSetMetaDataTypeForMySqlTest {
                 + "datetimeCol   DATETIME, "
                 + "timestampCol  TIMESTAMP, "
                 + "timeCol       TIME, "
-                + "yearCol       YEAR(2), "
+                + "yearCol       YEAR, "
                 + "yearCol2      YEAR(4), "
                 + "charCol       CHAR(4), "
                 + "varcharCol    VARCHAR(4), "
