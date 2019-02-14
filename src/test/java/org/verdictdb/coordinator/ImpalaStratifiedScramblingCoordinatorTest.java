@@ -95,7 +95,7 @@ public class ImpalaStratifiedScramblingCoordinatorTest {
     String scrambledTable = tablename + "_scrambled";
     conn.execute(String.format("drop table if exists %s.%s", IMPALA_DATABASE, scrambledTable));
     ScrambleMeta meta = scrambler.scramble(originalSchema, originalTable, originalSchema, scrambledTable, "stratified",
-        columnname, 0.1, null, Arrays.asList(columnname), 1, new HashMap<String, String>());
+        columnname, 1, null, Arrays.asList(columnname), 1, new HashMap<String, String>());
 
     // tests
     List<Pair<String, String>> originalColumns = conn.getColumns(IMPALA_DATABASE, originalTable);

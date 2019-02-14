@@ -98,7 +98,7 @@ public class PostgreSqlStratifiedScramblingCoordinatorTest {
     String scrambledTable = tablename + "_scrambled";
     conn.execute(String.format("drop table if exists %s.%s", POSTGRES_SCHEMA, scrambledTable));
     ScrambleMeta meta = scrambler.scramble(originalSchema, originalTable, originalSchema, scrambledTable, "stratified",
-        columnname, 0.1, null, Arrays.asList(columnname), 1, new HashMap<String, String>());
+        columnname, 11, null, Arrays.asList(columnname), 1, new HashMap<String, String>());
 
     // tests
     List<Pair<String, String>> originalColumns = conn.getColumns(POSTGRES_SCHEMA, originalTable);

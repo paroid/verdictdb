@@ -63,7 +63,7 @@ public class MySQLStratifiedScramblingCreateTest {
   public void createStratifiedScramblingTest() throws SQLException, VerdictDBException, IOException {
     vstmt.execute(String.format("use %s", MYSQL_DATABASE));
     stmt.execute(String.format("use %s", MYSQL_DATABASE));
-    vstmt.execute("create scramble lineitem_stratified1 from lineitem METHOD stratified ON l_quantity RATIO 0.1 LEASTSAMPLINGSIZE 1");
+    vstmt.execute("create scramble lineitem_stratified1 from lineitem METHOD stratified ON l_quantity BLOCKSIZE 100 LEASTSAMPLINGSIZE 1");
     ResultSet rs = stmt.executeQuery("select count(*) from lineitem_stratified1");
     rs.next();
     assertEquals(1000, rs.getInt(1));
@@ -73,7 +73,7 @@ public class MySQLStratifiedScramblingCreateTest {
   public void createStratifiedScramblingMultipleColumnsTest() throws SQLException, VerdictDBException, IOException {
     vstmt.execute(String.format("use %s", MYSQL_DATABASE));
     stmt.execute(String.format("use %s", MYSQL_DATABASE));
-    vstmt.execute("create scramble lineitem_stratified2 from lineitem METHOD stratified ON l_quantity, l_partkey RATIO 0.1 LEASTSAMPLINGSIZE 1");
+    vstmt.execute("create scramble lineitem_stratified2 from lineitem METHOD stratified ON l_quantity, l_partkey RATIO 0.1 BLOCKSIZE 100 LEASTSAMPLINGSIZE 1");
     ResultSet rs = stmt.executeQuery("select count(*) from lineitem_stratified2");
     rs.next();
     assertEquals(1000, rs.getInt(1));

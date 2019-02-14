@@ -7,7 +7,6 @@ import org.verdictdb.core.execplan.ExecutionInfoToken;
 import org.verdictdb.core.querying.*;
 import org.verdictdb.core.sqlobject.*;
 import org.verdictdb.exception.VerdictDBException;
-import scala.collection.immutable.Stream;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -40,13 +39,22 @@ public class StratifiedScramblingMethod extends ScramblingMethodBase {
   // where a is the uniform sampling ratio.
   private long leastSamplingSize = 15;
 
+  // Let k be the least number of rows user expected to find in one block for a group;
+  // Let a be the sampling ratio user specified.
+  // Let B be the total block number of the scrambling table
+  // tier 0: rare group - #row < k / a
+  // tier 1~10: intermediate group. Intervals are divided equally from k/a to k/a*B
+  // tier 11 : large group - #row > k/a*B
+  // If B < 10, maximumTierNumber = B+2, the tiers for intermediate groups will be reduced
+  private long maximumTierNumber = 12;
+
+  private long tableSize = -1;
+
   double p0 = 0.5; // max portion for Tier 0; should be configured dynamically in the future
 
   private String scratchpadSchemaName;
 
-  private List<Double> tier0CumulProbDist = null;
-
-  private List<Double> tier1CumulProbDist = null;
+  private List<List<Double>> tierCumulProbDistList = null;
 
   private List<String> stratifiedColumns = new ArrayList<>();
 
@@ -54,13 +62,15 @@ public class StratifiedScramblingMethod extends ScramblingMethodBase {
 
   public static final String MAIN_TABLE_SOURCE_ALIAS_NAME = "t1";
 
-  public static final String ORIGINAL_TABLE_SOURCE_ALIAS_NAME = "t0";
+  // public static final String ORIGINAL_TABLE_SOURCE_ALIAS_NAME = "t0";
 
   public static final String GROUP_INFO_TABLE_SOURCE_ALIAS_NAME = "t2";
 
-  public static final String ROW_NUMBER_COLUMN_ALIAS_NAME = "verdictdb_row_number";
+  // public static final String ROW_NUMBER_COLUMN_ALIAS_NAME = "verdictdb_row_number";
 
   private int totalNumberOfblocks = -1;
+
+  private int actualNumberOfBlocks = -1;
 
   private static VerdictDBLogger log =
       VerdictDBLogger.getLogger(StratifiedScramblingMethod.class);
@@ -99,7 +109,7 @@ public class StratifiedScramblingMethod extends ScramblingMethodBase {
 
     List<ExecutableNodeBase> statisticsNodes = new ArrayList<>();
 
-    // Group Coun mvn -DskipTests -DtestPhase=false -DpackagePhase=true clean packaget info
+    // Group Count
     TempIdCreatorInScratchpadSchema idCreator =
         new TempIdCreatorInScratchpadSchema(scratchpadSchemaName);
     StratifiedGroupNode sg = new StratifiedGroupNode(
@@ -135,38 +145,64 @@ public class StratifiedScramblingMethod extends ScramblingMethodBase {
     return outlierPredicate;
   }
 
+  private UnnamedColumn createOtherGroupTuplePredicate(String sourceTableAlias, long upperBound) {
+    UnnamedColumn outlierPredicate = ColumnOp.less(
+        new BaseColumn(sourceTableAlias, GROUP_COUNT_COLUMN_ALIAS),
+        ConstantColumn.valueOf(upperBound));
+    return outlierPredicate;
+  }
+
   @Override
   public List<UnnamedColumn> getTierExpressions(Map<String, Object> metaData) {
+    retrieveTableSizeAndBlockNumber(metaData);
+    maximumTierNumber = Math.min(actualNumberOfBlocks + 2, maximumTierNumber);
+
+    List<UnnamedColumn> predictList = new ArrayList<>();
     // Tier 0
     UnnamedColumn tier0Predicate =
-        createRareGroupTuplePredicate(StratifiedScramblingMethod.MAIN_TABLE_SOURCE_ALIAS_NAME);
+        createRareGroupTuplePredicate(StratifiedScramblingMethod.GROUP_INFO_TABLE_SOURCE_ALIAS_NAME);
+    predictList.add(tier0Predicate);
 
+    long maxThreshold = leastSamplingSize * totalNumberOfblocks;
+    for (int i = 0; i < (maximumTierNumber - 2); i++) {
+      UnnamedColumn tierPredictate = createOtherGroupTuplePredicate(
+          StratifiedScramblingMethod.GROUP_INFO_TABLE_SOURCE_ALIAS_NAME,
+          (long) Math.ceil((double) maxThreshold / (double) (maximumTierNumber - 2)) * (i + 1));
+      predictList.add(tierPredictate);
+    }
     // Tier 1: automatically handled by this function's caller
-    return Arrays.asList(tier0Predicate);
+    return predictList;
   }
 
   @Override
   public List<Double> getCumulativeProbabilityDistributionForTier(
       Map<String, Object> metaData, int tier) {
+
+
     // this cumulative prob is calculated at the first call of this method
-    if (tier0CumulProbDist == null) {
+    if (tierCumulProbDistList == null) {
+      tierCumulProbDistList = new ArrayList<>();
       populateAllCumulativeProbabilityDistribution(metaData);
     }
 
     List<Double> dist;
 
-    if (tier == 0) {
-      dist = tier0CumulProbDist;
+    dist = tierCumulProbDistList.get(tier);
+
+    if (actualNumberOfBlocks != totalNumberOfblocks) {
+      storeCumulativeProbabilityDistribution(tier, dist.subList(0, actualNumberOfBlocks));
     } else {
-      dist = tier1CumulProbDist;
+      storeCumulativeProbabilityDistribution(tier, dist);
     }
-    storeCumulativeProbabilityDistribution(tier, dist);
     return dist;
   }
 
   private void populateAllCumulativeProbabilityDistribution(Map<String, Object> metaData) {
     populateTier0CumulProbDist(metaData);
-    populateTier1CumulProbDist(metaData);
+    for (int i = 0; i < maximumTierNumber - 2; i++) {
+      populateIntermediateTierCumulProbDist(metaData, i);
+    }
+    populateLastTierCumulProbDist(metaData);
   }
 
   /*
@@ -176,128 +212,75 @@ public class StratifiedScramblingMethod extends ScramblingMethodBase {
   */
 
   /**
-   * Probability distribution for Tier1: All rare groups are put into block0.
+   * Probability distribution for Tier0: All rare groups are put into block0.
    *
    * @param metaData
    */
   private void populateTier0CumulProbDist(Map<String, Object> metaData) {
     List<Double> cumulProbDist = new ArrayList<>();
 
-    // calculate the number of blocks
-    Pair<Long, Integer> tableSizeAndBlockNumber = retrieveTableSizeAndBlockNumber(metaData);
-    int totalNumberOfblocks = tableSizeAndBlockNumber.getRight();
-
     for (int i = 0; i < totalNumberOfblocks; i++) {
       cumulProbDist.add(1.0);
     }
-    /*
-    long tableSize = tableSizeAndBlockNumber.getLeft();
-    long evenBlockSize = calcuteEvenBlockSize(totalNumberOfblocks, tableSize);
-    DbmsQueryResult rareGroupProportion =
-        (DbmsQueryResult) metaData.get(RareGroupSizeNode.class.getSimpleName());
-    rareGroupProportion.rewind();
-    rareGroupProportion.next();
-    rareGroupSize = rareGroupProportion.getLong(0);
-
-    if (rareGroupSize * 2 >= tableSize) {
-      // too large outlier -> no special treatment
-      for (int i = 0; i < totalNumberOfblocks; i++) {
-        cumulProbDist.add((i + 1) / (double) totalNumberOfblocks);
-      }
-
-    } else {
-      Long remainingSize = rareGroupSize;
-
-      while (rareGroupSize > 0 && remainingSize > 0) {
-        // fill only p0 portion of each block at most
-        if (remainingSize <= p0 * evenBlockSize) {
-          cumulProbDist.add(1.0);
-          break;
-        } else {
-          long thisBlockSize = (long) (evenBlockSize * p0);
-          double ratio = thisBlockSize / (float) rareGroupSize;
-          if (cumulProbDist.size() == 0) {
-            cumulProbDist.add(ratio);
-          } else {
-            cumulProbDist.add(cumulProbDist.get(cumulProbDist.size() - 1) + ratio);
-          }
-          remainingSize -= thisBlockSize;
-        }
-      }
-
-      // in case where the length of the prob distribution is not equal to the total block number
-      while (cumulProbDist.size() < totalNumberOfblocks) {
-        cumulProbDist.add(1.0);
-      }
-    }
-    */
-    tier0CumulProbDist = cumulProbDist;
+    tierCumulProbDistList.add(cumulProbDist);
   }
 
   /**
-   * Probability distribution for Tier1: the tuples that do not belong to tier0.
-   * Uniform sampling in other blocks except block 0.
+   * Probability distribution for last tier:
+   * groups that are large enough to do uniform sampling for all blocks
    *
    * @param metaData
    */
-  private void populateTier1CumulProbDist(Map<String, Object> metaData) {
+  private void populateLastTierCumulProbDist(Map<String, Object> metaData) {
     List<Double> cumulProbDist = new ArrayList<>();
-
-    // calculate the number of blocks
-    Pair<Long, Integer> tableSizeAndBlockNumber = retrieveTableSizeAndBlockNumber(metaData);
-    int totalNumberOfblocks = tableSizeAndBlockNumber.getRight();
-
-    cumulProbDist.add(sampleingRatio);
+    double uniformSamplingRatio = 1.0 / totalNumberOfblocks;
+    cumulProbDist.add(uniformSamplingRatio);
     for (int i = 1; i < totalNumberOfblocks - 1; i++) {
-      cumulProbDist.add(cumulProbDist.get(i-1)+sampleingRatio);
+      cumulProbDist.add(cumulProbDist.get(i - 1) + uniformSamplingRatio);
     }
-    cumulProbDist.add(1.0);
-
-    /*
-    long tableSize = tableSizeAndBlockNumber.getLeft();
-    long evenBlockSize = calcuteEvenBlockSize(totalNumberOfblocks, tableSize);
-
-    //    System.out.println("table size: " + tableSize);
-    //    System.out.println("outlier size: " + rareGroupSize);
-    //    System.out.println("small group size: " + smallGroupSizeSum);
-    long tier2Size = tableSize - rareGroupSize;
-
-    for (int i = 0; i < totalNumberOfblocks; i++) {
-      long thisTier0Size;
-      if (i == 0) {
-        thisTier0Size = (long) (rareGroupSize * tier0CumulProbDist.get(i));
-      } else {
-        thisTier0Size =
-            (long) (rareGroupSize * (tier0CumulProbDist.get(i) - tier0CumulProbDist.get(i - 1)));
-      }
-      long thisBlockSize = evenBlockSize - thisTier0Size;
-      if (tier2Size == 0) {
-        cumulProbDist.add(1.0);
-      } else {
-        double thisBlockRatio = thisBlockSize / (double) tier2Size;
-        if (i == 0) {
-          cumulProbDist.add(thisBlockRatio);
-        } else if (i == totalNumberOfblocks - 1) {
-          cumulProbDist.add(1.0);
-        } else {
-          cumulProbDist.add(Math.min(cumulProbDist.get(i - 1) + thisBlockRatio, 1.0));
-        }
-      }
+    for (int i = totalNumberOfblocks - 1; i < totalNumberOfblocks; i++) {
+      cumulProbDist.add(1.0);
     }
-    */
-    tier1CumulProbDist = cumulProbDist;
+    tierCumulProbDistList.add(cumulProbDist);
   }
+
+  /**
+   * Probability distribution for Intermediate tiers: the tuples that do not belong to tier0 and last tier.
+   * Uniform sampling within in first (idx/(maximumTierNumber-2))*totalNumberOfblocks blocks.
+   *
+   * @param metaData
+   */
+  private void populateIntermediateTierCumulProbDist(Map<String, Object> metaData, int idx) {
+    List<Double> cumulProbDist = new ArrayList<>();
+    int uniformBlockdCount = (int) Math.ceil(((double)idx/(double)(maximumTierNumber - 2))*totalNumberOfblocks);
+    // Prevent 1 divide 0 case.
+    if (uniformBlockdCount == 0) {
+      uniformBlockdCount = 1;
+    }
+    double uniformSamplingRatio = 1.0 / uniformBlockdCount;
+    if (uniformBlockdCount!=1) {
+      cumulProbDist.add(uniformSamplingRatio);
+    }
+    for (int i = 1; i < uniformBlockdCount - 1; i++) {
+      cumulProbDist.add(cumulProbDist.get(i - 1) + uniformSamplingRatio);
+    }
+    for (int i = uniformBlockdCount - 1; i < totalNumberOfblocks; i++) {
+      cumulProbDist.add(1.0);
+    }
+    tierCumulProbDistList.add(cumulProbDist);
+  }
+
 
   // Helper
   // Block number of stratified sampling is (1 / sampling ratio). All rare groups go to block 0.
-  private Pair<Long, Integer> retrieveTableSizeAndBlockNumber(Map<String, Object> metaData) {
+  private void retrieveTableSizeAndBlockNumber(Map<String, Object> metaData) {
     DbmsQueryResult tableSizeResult =
         (DbmsQueryResult) metaData.get(TableSizeCountNode.class.getSimpleName());
     tableSizeResult.rewind();
     tableSizeResult.next();
-    long tableSize = tableSizeResult.getLong(TableSizeCountNode.TOTAL_COUNT_ALIAS_NAME);
-    totalNumberOfblocks = (int) Math.ceil(1 / sampleingRatio);
-    return Pair.of(tableSize, totalNumberOfblocks);
+    tableSize = tableSizeResult.getLong(TableSizeCountNode.TOTAL_COUNT_ALIAS_NAME);
+    totalNumberOfblocks = (int) Math.ceil(tableSize / (float) blockSize);
+    actualNumberOfBlocks = (int) Math.ceil(totalNumberOfblocks * sampleingRatio);
   }
 
   @Override
@@ -307,6 +290,31 @@ public class StratifiedScramblingMethod extends ScramblingMethodBase {
     String groupDistributionSchemaName = (String) metaData.get("schemaName");
     String groupDistributionTableName = (String) metaData.get("tableName");
 
+    UnnamedColumn joinPredicate = null;
+    for (String columnName : stratifiedColumns) {
+      if (joinPredicate == null) {
+        joinPredicate = ColumnOp.equal(
+            new BaseColumn(MAIN_TABLE_SOURCE_ALIAS_NAME, columnName),
+            new BaseColumn(GROUP_INFO_TABLE_SOURCE_ALIAS_NAME, columnName));
+      } else {
+        joinPredicate = ColumnOp.and(
+            joinPredicate,
+            ColumnOp.equal(
+                new BaseColumn(MAIN_TABLE_SOURCE_ALIAS_NAME, columnName),
+                new BaseColumn(GROUP_INFO_TABLE_SOURCE_ALIAS_NAME, columnName)));
+      }
+    }
+    JoinTable source =
+        JoinTable.create(
+            Arrays.<AbstractRelation>asList(
+                new BaseTable(originalSchema, originalTable, MAIN_TABLE_SOURCE_ALIAS_NAME),
+                new BaseTable(
+                    groupDistributionSchemaName,
+                    groupDistributionTableName,
+                    GROUP_INFO_TABLE_SOURCE_ALIAS_NAME)),
+            Arrays.asList(JoinTable.JoinType.leftouter),
+            Arrays.asList(joinPredicate));
+    /*
     UnnamedColumn joinPredicate = null;
     for (String columnName : stratifiedColumns) {
       if (joinPredicate == null) {
@@ -334,18 +342,19 @@ public class StratifiedScramblingMethod extends ScramblingMethodBase {
 
     // create temp table for row number
     List<SelectItem> selectItemList = new ArrayList<>();
-    for (Pair<String, String> columns:(List<Pair>)metaData.get("scramblingPlan:columnMetaData")) {
+    for (Pair<String, String> columns : (List<Pair>) metaData.get("scramblingPlan:columnMetaData")) {
       selectItemList.add(new BaseColumn(ORIGINAL_TABLE_SOURCE_ALIAS_NAME, columns.getKey()));
     }
     List<UnnamedColumn> stratifiedColumnsList = new ArrayList<>();
-    for (String columnName:stratifiedColumns) {
+    for (String columnName : stratifiedColumns) {
       stratifiedColumnsList.add(new BaseColumn(ORIGINAL_TABLE_SOURCE_ALIAS_NAME, columnName));
     }
     selectItemList.add(new AliasedColumn(new ColumnOp("rownumber", stratifiedColumnsList), ROW_NUMBER_COLUMN_ALIAS_NAME));
     selectItemList.add(new BaseColumn(GROUP_INFO_TABLE_SOURCE_ALIAS_NAME, GROUP_COUNT_COLUMN_ALIAS));
     SelectQuery selectQuery = SelectQuery.create(selectItemList, source);
     selectQuery.setAliasName(MAIN_TABLE_SOURCE_ALIAS_NAME);
-    return selectQuery;
+    */
+    return source;
   }
 
   @Override
@@ -355,6 +364,7 @@ public class StratifiedScramblingMethod extends ScramblingMethodBase {
 
   @Override
   public UnnamedColumn getBlockExprForTier(int tier, Map<String, Object> metaData) {
+
     List<Double> cumulProb = getCumulativeProbabilityDistributionForTier(metaData, tier);
     List<Double> condProb = computeConditionalProbabilityDistribution(cumulProb);
     int blockCount = cumulProb.size();
@@ -362,18 +372,8 @@ public class StratifiedScramblingMethod extends ScramblingMethodBase {
     List<UnnamedColumn> blockForTierOperands = new ArrayList<>();
     for (int j = 0; j < blockCount; j++) {
       // ensure k rows for non-rare group(tier 1)
-      if (tier==1) {
-        ColumnOp lowerBound = ColumnOp.multiply(ConstantColumn.valueOf(j),
-            ColumnOp.multiply(ConstantColumn.valueOf(sampleingRatio), new BaseColumn(GROUP_COUNT_COLUMN_ALIAS)));
-        ColumnOp upperBound = ColumnOp.multiply(ConstantColumn.valueOf(j+1),
-            ColumnOp.multiply(ConstantColumn.valueOf(sampleingRatio), new BaseColumn(GROUP_COUNT_COLUMN_ALIAS)));
-        blockForTierOperands.add(
-            ColumnOp.and(ColumnOp.greater(new BaseColumn(ROW_NUMBER_COLUMN_ALIAS_NAME), lowerBound),
-                ColumnOp.lessequal(new BaseColumn(ROW_NUMBER_COLUMN_ALIAS_NAME), upperBound)));
-      } else {
-        blockForTierOperands.add(
-            ColumnOp.lessequal(ColumnOp.rand(), ConstantColumn.valueOf(condProb.get(j))));
-      }
+      blockForTierOperands.add(
+          ColumnOp.lessequal(ColumnOp.rand(), ConstantColumn.valueOf(condProb.get(j))));
       blockForTierOperands.add(ConstantColumn.valueOf(j));
     }
     UnnamedColumn blockForTierExpr;
@@ -394,7 +394,7 @@ public class StratifiedScramblingMethod extends ScramblingMethodBase {
 
   @Override
   public int getActualBlockCount() {
-    return totalNumberOfblocks;
+    return actualNumberOfBlocks;
   }
 
   @Override
@@ -482,5 +482,6 @@ public class StratifiedScramblingMethod extends ScramblingMethodBase {
       token.setKeyValue(this.getClass().getSimpleName(), fullTableName);
       return token;
     }
+
   }
 }

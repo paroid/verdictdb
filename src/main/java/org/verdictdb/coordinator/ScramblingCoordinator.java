@@ -406,7 +406,6 @@ public class ScramblingCoordinator {
     } else if (methodName.equalsIgnoreCase("FastConverge") && primaryColumn != null) {
       scramblingMethodBase =
           new FastConvergeScramblingMethod(blockSize, scratchpadSchema.get(), primaryColumn);
-
     } else if (methodName.equalsIgnoreCase("stratified") && !stratifiedColumns.isEmpty()) {
       scramblingMethodBase = new StratifiedScramblingMethod(blockSize, scratchpadSchema.get(), leastSamplingSize, relativeSize);
       ((StratifiedScramblingMethod) scramblingMethodBase).setStratifiedColumns(stratifiedColumns);
