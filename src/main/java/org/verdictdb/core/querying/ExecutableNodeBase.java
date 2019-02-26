@@ -66,7 +66,7 @@ public class ExecutableNodeBase implements ExecutableNode, Serializable {
 
   protected AggMeta aggMeta = new AggMeta();
 
-  int count = 0;
+  public int count = 0;
 
   protected int uniqueId;
 
@@ -206,14 +206,14 @@ public class ExecutableNodeBase implements ExecutableNode, Serializable {
   @Override
   public void getNotified(ExecutableNode source, ExecutionInfoToken token) {
     log.debug(String.format("get notified times: %d\n", ++count));
-    for (Pair<ExecutableNodeBase, Integer> a : sources) {
-      if (source.equals(a.getLeft())) {
-        int channel = a.getRight();
-        channels.get(channel).add(token);
-        //    System.out.println("channel: " + channel);
-        //    System.out.println("get notified: " + token);
+      for (Pair<ExecutableNodeBase, Integer> a : sources) {
+        if (source.equals(a.getLeft())) {
+          int channel = a.getRight();
+          channels.get(channel).add(token);
+          //    System.out.println("channel: " + channel);
+          //    System.out.println("get notified: " + token);
+        }
       }
-    }
   }
 
   @Override

@@ -30,6 +30,7 @@ import org.verdictdb.connection.DbmsConnection;
 import org.verdictdb.connection.DbmsQueryResult;
 import org.verdictdb.connection.JdbcConnection;
 import org.verdictdb.connection.SparkConnection;
+import org.verdictdb.core.querying.AggExecutionNode;
 import org.verdictdb.core.querying.ExecutableNodeBase;
 import org.verdictdb.core.querying.SelectAggExecutionNode;
 import org.verdictdb.core.querying.ola.AsyncAggExecutionNode;
@@ -41,6 +42,7 @@ import org.verdictdb.exception.VerdictDBException;
 import org.verdictdb.exception.VerdictDBValueException;
 import org.verdictdb.sqlsyntax.MysqlSyntax;
 import org.verdictdb.sqlwriter.QueryToSql;
+import scala.collection.concurrent.Debug;
 
 public class ExecutableNodeRunner implements Runnable {
 
@@ -51,6 +53,8 @@ public class ExecutableNodeRunner implements Runnable {
   int successSourceCount = 0;
 
   int dependentCount;
+
+  int executeCount = 0;
 
 //  private boolean isAborted = false;
 
@@ -70,6 +74,8 @@ public class ExecutableNodeRunner implements Runnable {
   private Thread runningTask = null;
 
   private List<ExecutableNodeRunner> childRunners = new ArrayList<>();
+
+  private List<ExecutableNodeRunner> cRunners = new ArrayList<>();
 
   public void markComplete() {
     status = NodeRunningStatus.completed;
@@ -218,6 +224,12 @@ public class ExecutableNodeRunner implements Runnable {
   }
 
   private void runDependents() {
+    if (node.getDependentNodeCount()>0 && cRunners.isEmpty()) {
+      for (ExecutableNode child:((ExecutableNodeBase) node).getSources()) {
+        cRunners.add(child.getRegisteredRunner());
+      }
+    }
+
     if (doesThisNodeContainAsyncAggExecutionNode()) {
       int maxNumberOfRunningNode = getMaxNumberOfRunningNode();
       int currentlyRunningOrCompleteNodeCount = childRunners.size();
@@ -301,7 +313,7 @@ public class ExecutableNodeRunner implements Runnable {
       // this function will be called again whenever a child node completes.
       List<ExecutionInfoToken> tokens = retrieve();
       if (tokens == null) {
-        log.debug("Not enough source nodes are finished, loop terminates");
+        log.debug(String.format("node: %s Not enough source nodes are finished, loop terminates", node.getClass().toString()));
         //        markInitiated();
         clearRunningTask();
         return;
@@ -318,6 +330,9 @@ public class ExecutableNodeRunner implements Runnable {
         return;
       }
       if (areAllSuccess(tokens)) {
+        if (doesContainAggExecutionNode(node)) {
+          log.debug(String.format("All dependent nodes are finished for %s", node.toString()));
+        }
         log.trace(String.format("All dependent nodes are finished for %s", node.toString()));
         broadcastAndTriggerRun(ExecutionInfoToken.successToken());
         //clearRunningTask();
@@ -354,10 +369,31 @@ public class ExecutableNodeRunner implements Runnable {
 
   synchronized List<ExecutionInfoToken> retrieve() {
     Map<Integer, ExecutionTokenQueue> sourceChannelAndQueues = node.getSourceQueues();
+    boolean allCompleted = true;
+    for (ExecutableNodeRunner childRunner:cRunners) {
+      if (childRunner.status != NodeRunningStatus.completed) {
+        allCompleted = false;
+        break;
+      }
+    }
+    if (allCompleted && node.getDependentNodeCount()==cRunners.size()) {
+      log.debug(String.format("Child runner all success, Node: %s", node.getClass().toString()));
+    }
 
     for (ExecutionTokenQueue queue : sourceChannelAndQueues.values()) {
       ExecutionInfoToken rs = queue.peek();
       if (rs == null) {
+        if (allCompleted && node.getDependentNodeCount()==cRunners.size()) {
+          log.debug(String.format("here runner all success, Node: %s", node.getClass().toString()));
+          List<ExecutionInfoToken> results = new ArrayList<>();
+          for (Entry<Integer, ExecutionTokenQueue> channelAndQueue : sourceChannelAndQueues.entrySet()) {
+            int channel = channelAndQueue.getKey();
+            ExecutionInfoToken r = channelAndQueue.getValue().take();
+            r.setKeyValue("channel", channel);
+            results.add(r);
+          }
+          return results;
+        }
         return null;
       }
     }
@@ -370,13 +406,17 @@ public class ExecutableNodeRunner implements Runnable {
       rs.setKeyValue("channel", channel);
       results.add(rs);
     }
-
+    if (areAllStatusTokens(results)) {
+      log.debug(String.format("all success token, Node: %s", node.getClass().toString()));
+    } else {
+      log.debug(String.format("not all success token, Node: %s", node.getClass().toString()));
+    }
     return results;
   }
 
   void broadcastAndTriggerRun(ExecutionInfoToken token) {
     if (noNeedToRun() && !areAllStatusTokens(Arrays.asList(token))) {
-      log.trace(
+      log.debug(
           String.format(
               "This node (%s) has been aborted. Do not broadcast: %s", this.toString(), token));
       return;
@@ -393,14 +433,13 @@ public class ExecutableNodeRunner implements Runnable {
       //      logger.trace(token.toString());
     }
 
-    if (node instanceof SelectAggExecutionNode && areAllStatusTokens(Arrays.asList(token))) {
+    if (doesContainAggExecutionNode(node) && areAllStatusTokens(Arrays.asList(token))) {
       status = NodeRunningStatus.completed;
     }
 
     for (ExecutableNode dest : node.getSubscribers()) {
       ExecutionInfoToken copiedToken = token.deepcopy();
       dest.getNotified(node, copiedToken);
-
       // signal the runner of the broadcasted node so that its associated runner performs
       // execution if necessary.
       ExecutableNodeRunner runner = dest.getRegisteredRunner();
@@ -409,6 +448,16 @@ public class ExecutableNodeRunner implements Runnable {
         log.debug("Broadcast: status " + status);
         runner.runThisAndDependents(); // this is needed due to async node.
       }
+    }
+  }
+
+  boolean doesContainAggExecutionNode(ExecutableNode node) {
+    if (node instanceof SelectAggExecutionNode || node instanceof AggExecutionNode) {
+      return true;
+    } else if (node instanceof ConsolidatedExecutionNode) {
+      return doesContainAggExecutionNode(((ConsolidatedExecutionNode) node).getParentNode());
+    } else {
+      return false;
     }
   }
 
@@ -479,7 +528,8 @@ public class ExecutableNodeRunner implements Runnable {
         throw new VerdictDBValueException(e);
       }
     }
-
+    executeCount++;
+    log.debug(String.format("%s create token, execute: %d", node.getClass(), executeCount));
     return token;
   }
 
@@ -504,12 +554,33 @@ public class ExecutableNodeRunner implements Runnable {
   }
 
   boolean areAllSuccess(List<ExecutionInfoToken> tokens) {
+    int count = 0;
+    for (ExecutableNodeRunner r:cRunners) {
+      if (r.status == NodeRunningStatus.completed) {
+        count++;
+      } else if (r.status == NodeRunningStatus.running) {
+        boolean allCompleted = true;
+        for (ExecutableNodeRunner subr:r.cRunners) {
+          if (subr.status != NodeRunningStatus.completed) {
+            allCompleted = false;
+          }
+        }
+        if (allCompleted) {
+          if (executeCount==1 && !doesThisNodeContainAsyncAggExecutionNode()
+              || executeCount==node.getDependentNodeCount() && doesThisNodeContainAsyncAggExecutionNode()) {
+            log.debug("ktkr");
+            r.broadcastAndTriggerRun(ExecutionInfoToken.successToken());
+            count++;
+          }
+        }
+      }
+    }
+    log.debug(String.format("Complete count of %s: %d", node.getClass(), count));
+
     for (ExecutionInfoToken t : tokens) {
           if (t.isSuccessToken()) {
-            synchronized ((Object) successSourceCount) {
-              successSourceCount++;
-            }
-            log.debug(String.format("Success count of %s: %d", node.toString(), successSourceCount));
+            successSourceCount++;
+            log.debug(String.format("Success count of %s: %d", node.getClass(), successSourceCount));
           } else {
             return false;
       }
