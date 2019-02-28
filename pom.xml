@@ -74,7 +74,7 @@
         <apache.commons.version>3.5</apache.commons.version>
         <junit.version>4.12</junit.version>
         <google.guava.version>14.0.1</google.guava.version>
-        <jackson.databind.version>2.6.5</jackson.databind.version>
+        <jackson.databind.version>2.9.8</jackson.databind.version>
         <maven.java.version>1.7</maven.java.version>
         <maven.source-plugin.version>3.0.1</maven.source-plugin.version>
         <maven.compiler-plugin.version>3.8.0</maven.compiler-plugin.version>
@@ -82,7 +82,7 @@
         <maven.failsafe.version>2.13</maven.failsafe.version>
         <maven.surefire.version>2.12.4</maven.surefire.version>
         <maven.javadoc.version>2.10.4</maven.javadoc.version>
-        <spark.version>2.2.1</spark.version>   <!-- google dataproc default version -->
+        <spark.version>2.4.0</spark.version>   <!-- google dataproc default version -->
         <janino.version>3.0.0</janino.version> <!-- matching version with spark 2.2.1 -->
         <skipTests>false</skipTests>
     </properties>
