@@ -26,10 +26,14 @@ public class CreateSchemaQuery implements SqlConvertible {
 
   public CreateSchemaQuery(String schemaName) {
     this.schemaName = schemaName;
+    //Added by Sofia 3-15-2019
+    ifNotExists=true;
   }
 
   public String getSchemaName() {
     return schemaName;
+    
+      
   }
 
   public boolean isIfNotExists() {
