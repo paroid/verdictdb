@@ -4,10 +4,10 @@
 
 # Sanity check command line options
 usage() {
-  printf "Usage: $0 [size]\n"
+  printf "Usage: $0 [size] [data-dir]\n"
 }
 
-if [ $# -ne 1 ]; then
+if [ $# -ne 2 ]; then
   usage
   exit 1
 fi
@@ -28,24 +28,24 @@ touch drop_db.hql
 echo "drop database if exists tpch$1g cascade" > drop_db.hql
 hive -f drop_db.hql
 
-# build a directory to hold data
-if [ ! -d "./data/" ]; then
-    mkdir data/
-fi
-db_path="tpch$1g"
-rm -rf data/$db_path
-mkdir data/$db_path
-echo $db_path
+# # build a directory to hold data
+# if [ ! -d "./data/" ]; then
+#     mkdir data/
+# fi
+# db_path="tpch$1g"
+# rm -rf data/$db_path
+# mkdir data/$db_path
+# echo $db_path
 
-# go to tpch dbgen directory, remove previous tbl files and gen
-cd 2.18.0_rc2/dbgen/
-rm *.tbl
-gen_data="./dbgen -s $1"
-eval $gen_data
-
-cd ../../
-# pwd
-mv 2.18.0_rc2/dbgen/*.tbl data/$db_path/
+# # go to tpch dbgen directory, remove previous tbl files and gen
+# cd 2.18.0_rc2/dbgen/
+# rm *.tbl
+# gen_data="./dbgen -s $1"
+# eval $gen_data
+#
+# cd ../../
+# # pwd
+# mv 2.18.0_rc2/dbgen/*.tbl data/$db_path/
 
 # make directories and put data to hdfs
 hdfs dfs -mkdir $hdfs_path
@@ -59,14 +59,14 @@ hdfs dfs -mkdir /tmp/tpch$1g/region/
 hdfs dfs -mkdir /tmp/tpch$1g/supplier/
 
 echo "put data to hdfs..."
-hdfs dfs -put data/$db_path/customer.tbl /tmp/tpch$1g/customer/
-hdfs dfs -put data/$db_path/lineitem.tbl /tmp/tpch$1g/lineitem/
-hdfs dfs -put data/$db_path/nation.tbl /tmp/tpch$1g/nation/
-hdfs dfs -put data/$db_path/orders.tbl /tmp/tpch$1g/orders/
-hdfs dfs -put data/$db_path/part.tbl /tmp/tpch$1g/part/
-hdfs dfs -put data/$db_path/partsupp.tbl /tmp/tpch$1g/partsupp/
-hdfs dfs -put data/$db_path/region.tbl /tmp/tpch$1g/region/
-hdfs dfs -put data/$db_path/supplier.tbl /tmp/tpch$1g/supplier/
+hdfs dfs -put $2/customer/customer.tbl /tmp/tpch$1g/customer/
+hdfs dfs -put $2/lineitem/lineitem.tbl /tmp/tpch$1g/lineitem/
+hdfs dfs -put $2/nation/nation.tbl /tmp/tpch$1g/nation/
+hdfs dfs -put $2/orders/orders.tbl /tmp/tpch$1g/orders/
+hdfs dfs -put $2/part/part.tbl /tmp/tpch$1g/part/
+hdfs dfs -put $2/partsupp/partsupp.tbl /tmp/tpch$1g/partsupp/
+hdfs dfs -put $2/region/region.tbl /tmp/tpch$1g/region/
+hdfs dfs -put $2/supplier/supplier.tbl /tmp/tpch$1g/supplier/
 
 echo "create database..."
 # create database and tables on hive
