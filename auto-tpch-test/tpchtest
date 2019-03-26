@@ -9,7 +9,7 @@ usage() {
   printf "Note: you need to rebuild the pyverdict package (if some change is made to verdictdb) because it is used as the interface here \nUsage: $0 [presto] [filename] [size] [data-dir]\n"
 }
 
-if [ $# -ne 3 ]; then
+if [ $# -ne 4 ]; then
   usage
   exit 1
 fi
