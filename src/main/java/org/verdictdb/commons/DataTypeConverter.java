@@ -186,6 +186,9 @@ public class DataTypeConverter {
     stringToIntMap.put("time with time zone", TIME);
     stringToIntMap.put("timestamp with time zone", TIMESTAMP);
     stringToIntMap.put("uuid", VARCHAR);
+    //sqlite
+    stringToIntMap.put("num", INTEGER);
+    stringToIntMap.put("", INTEGER);
   }
 
   public static String typeName(int inttype) {

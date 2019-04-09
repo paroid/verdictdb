@@ -42,6 +42,7 @@ import org.verdictdb.metastore.VerdictMetaStore;
 import org.verdictdb.sqlsyntax.MysqlSyntax;
 import org.verdictdb.sqlsyntax.SqlSyntax;
 import org.verdictdb.sqlsyntax.SqlSyntaxList;
+import org.verdictdb.sqlsyntax.SqliteSyntax;
 
 public class VerdictContext {
 
@@ -179,7 +180,8 @@ public class VerdictContext {
     options.parseConnectionString(jdbcConnectionString);
     options.parseProperties(info);
     options.parseConnectionString(jdbcConnectionString);
-    if (SqlSyntaxList.getSyntaxFromConnectionString(jdbcConnectionString) instanceof MysqlSyntax) {
+    if (SqlSyntaxList.getSyntaxFromConnectionString(jdbcConnectionString) instanceof MysqlSyntax
+        || SqlSyntaxList.getSyntaxFromConnectionString(jdbcConnectionString) instanceof SqliteSyntax) {
       return new VerdictContext(JdbcConnection.create(jdbcConnectionString, info), options);
     } else {
       return new VerdictContext(ConcurrentJdbcConnection.create(jdbcConnectionString, info), options);

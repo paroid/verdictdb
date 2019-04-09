@@ -858,13 +858,13 @@ public class VerdictStreamResultSet extends VerdictResultSet {
    * Require a mutex here. The stream is executed on the other thread. When the execution of the stream is finished,
    * it will try to synchronize hasReadAllQueryResults flag by calling synchronized(hasReadAllQueryResults).
    * And here are two cases: 1) next() executes first 2) the other thread executes first
-   *
+   * <p>
    * 1) If next() first executes, the flag hasReadAllQueryResults is still false. next() will try to take new queryResult
    * from queryResults. As soon as, next doesn't acquire hasReadAllQueryResults flag. Then the other thread will take the
    * acquire of hasReadAllQueryResults, append the queryresult and set the flag to be true. At that time, if another next() is called,
    * it will get blocked at the line 'else if (queryResults.peek() == null && hasReadAllQueryResults)' until the other thread finishes
    * its job.
-   *
+   * <p>
    * 2) If the other thread executes first, it will append the query result and set the flag to be true. Then waiting
    * next() starts to execute. Since there are still queryResult in queryResults, next() will take it from the list so that
    * the last queryResult won't be neglected. The second next() will return false, since queryResults.peek()==null and
@@ -895,7 +895,7 @@ public class VerdictStreamResultSet extends VerdictResultSet {
         if (queryResult == null && hasReadAllQueryResults) {
           return false;
           //throw new RuntimeException("The queryResult was unavailable for a long time for an unknown reasons.");
-        } else if (queryResult == null){
+        } else if (queryResult == null) {
           queryResult = queryResults.take();
         }
         //queryResult = queryResults.take();

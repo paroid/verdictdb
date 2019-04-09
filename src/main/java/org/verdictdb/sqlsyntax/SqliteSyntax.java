@@ -16,20 +16,20 @@
 
 package org.verdictdb.sqlsyntax;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
 import java.util.List;
 
 public class SqliteSyntax extends SqlSyntax {
 
   @Override
   public boolean doesSupportTablePartitioning() {
-    // TODO Auto-generated method stub
     return false;
   }
 
   @Override
-  public void dropTable(String schema, String tablename) {
-    // TODO Auto-generated method stub
-  }
+  public void dropTable(String schema, String tablename) { }
 
   @Override
   public String getFallbackDefaultSchema() {
@@ -38,20 +38,17 @@ public class SqliteSyntax extends SqlSyntax {
 
   @Override
   public int getColumnNameColumnIndex() {
-    // TODO Auto-generated method stub
-    return 0;
+    return 1;
   }
 
   @Override
   public String getColumnsCommand(String schema, String table) {
-    // TODO Auto-generated method stub
-    return null;
+    return "PRAGMA table_info(" + quoteName(table) + ")";
   }
 
   @Override
   public int getColumnTypeColumnIndex() {
-    // TODO Auto-generated method stub
-    return 0;
+    return 2;
   }
 
   @Override
@@ -69,44 +66,39 @@ public class SqliteSyntax extends SqlSyntax {
 
   @Override
   public String getQuoteString() {
-    // TODO Auto-generated method stub
-    return null;
+    return "'";
   }
 
   @Override
   public String getSchemaCommand() {
-    // TODO Auto-generated method stub
-    return null;
+    // Sqlite doesn't support schema, use database instead
+    return "PRAGMA database_list";
   }
 
   @Override
   public int getSchemaNameColumnIndex() {
-    // TODO Auto-generated method stub
-    return 0;
+    return 1;
   }
 
   @Override
   public String getTableCommand(String schema) {
-    // TODO Auto-generated method stub
-    return null;
+    // schema should be database in sqlite
+    return String.format("select name from %s.sqlite_master where type='table'", schema);
   }
 
   @Override
   public int getTableNameColumnIndex() {
-    // TODO Auto-generated method stub
     return 0;
   }
 
   @Override
   public String randFunction() {
-    // TODO Auto-generated method stub
-    return null;
+    return "Abs(random()) % 100.0 / 100.0";
   }
 
   @Override
   public boolean isAsRequiredBeforeSelectInCreateTable() {
-    // TODO Auto-generated method stub
-    return false;
+    return true;
   }
 
   @Override
@@ -125,6 +117,20 @@ public class SqliteSyntax extends SqlSyntax {
 
   @Override
   public String hashFunction(String column) {
+    return null;
+  }
+
+  public String createDatabase(String database) {
+    try {
+      String url = "jdbc:sqlite:" + database + ".db";
+      Connection connection = DriverManager.getConnection(url);
+      ResultSet rs = connection.createStatement().executeQuery("PRAGMA database_list");
+      rs.next();
+      String file = rs.getString(3);
+      return "ATTACH " + quoteName(file) + " AS " + database;
+    } catch (Exception e) {
+      System.out.println(e.getMessage());
+    }
     return null;
   }
 }

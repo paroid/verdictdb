@@ -297,6 +297,13 @@ public class ScramblingCoordinator {
     Map<String, String> customOptions = new HashMap<>(options);
     customOptions.put("minScrambleTableBlockSize", Long.toString(query.getBlockSize()));
 
+    if (originalSchema.equals("")) {
+      originalSchema = conn.getDefaultSchema();
+    }
+    if (newSchema.equals("")) {
+      newSchema = conn.getDefaultSchema();
+    }
+
     ScrambleMeta meta =
         scramble(
             originalSchema,

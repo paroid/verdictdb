@@ -19,6 +19,7 @@ package org.verdictdb.sqlwriter;
 import org.verdictdb.core.sqlobject.CreateSchemaQuery;
 import org.verdictdb.exception.VerdictDBException;
 import org.verdictdb.sqlsyntax.SqlSyntax;
+import org.verdictdb.sqlsyntax.SqliteSyntax;
 
 public class CreateSchemaToSql {
 
@@ -28,7 +29,11 @@ public class CreateSchemaToSql {
     this.syntax = syntax;
   }
 
-  public String toSql(CreateSchemaQuery query) throws VerdictDBException {
+  public String toSql(CreateSchemaQuery query) {
+    if (syntax instanceof SqliteSyntax) {
+      return ((SqliteSyntax) syntax).createDatabase(query.getSchemaName());
+    }
+
     StringBuilder sql = new StringBuilder();
     sql.append("create schema ");
     if (query.isIfNotExists()) {
